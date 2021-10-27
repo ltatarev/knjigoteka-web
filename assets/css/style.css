@@ -213,3 +213,14 @@ p.card-text {
 footer {
   background: rgb(68, 68, 68);
 }
+
+blockquote {
+  font-weight: bold;
+  border-left: 10px #e76f51 solid;
+  background-color: #e76f5125;
+  padding-left: 20px;
+  padding-right: 10px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+

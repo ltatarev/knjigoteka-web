@@ -6,10 +6,10 @@ require("dotenv").config({
 
 module.exports = {
   siteMetadata: {
-    siteUrl: "https://gatsbycontentfulhomepage.gatsbyjs.io/",
-    title: "Gatsby Contentful Homepage Starter",
-    author: `Gatsby`,
-    description: "A Gatsby Starter for building homepages with Contentful",
+    siteUrl: "https://knjigoteka.club/",
+    title: "Knjigoteka Bilje",
+    author: `Knjigoteka`,
+    description: "Udruga ljubitelja knjiga Bilje",
   },
   plugins: [
     {
@@ -29,12 +29,12 @@ module.exports = {
     {
       resolve: "gatsby-plugin-manifest",
       options: {
-        name: "Gatsby Starter Contentful Homepage",
-        short_name: "Gatsby",
+        name: "Knjigoteka Bilje",
+        short_name: "Knjigoteka",
         start_url: "/",
         // These can be imported once ESM support lands
-        background_color: "#ffe491",
-        theme_color: "#004ca3",
+        background_color: "#FFFCF8",
+        theme_color: "#E98C00",
         icon: "src/favicon.png",
       },
     },

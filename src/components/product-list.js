@@ -10,7 +10,6 @@ import {
   Subhead,
   Box,
   Icon,
-  LinkList,
 } from "./ui"
 
 function Product(props) {
@@ -25,7 +24,6 @@ function Product(props) {
       )}
       <Subhead>{props.heading}</Subhead>
       <Text>{props.text}</Text>
-      <LinkList links={props.links} />
     </Box>
   )
 }

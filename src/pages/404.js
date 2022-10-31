@@ -6,20 +6,20 @@ import * as styles from "../components/404.css"
 
 export default function NotFound() {
   return (
-    <Layout title="404: Page not found">
+    <Layout title="Stranica nije pronađena">
       <Box paddingY={4}>
         <Container>
           <Flex variant="column">
             <Heading variant="mega" className={styles.heading}>
               404
             </Heading>
-            <Heading as="h1">Page not found</Heading>
+            <Heading as="h1">Stranica nije pronađena</Heading>
             <Flex variant="column" gap={0}>
-              <Text variant="lead" className={styles.text}>
-                Sorry! We couldn’t find the page you were looking for.
+              <Text className={styles.text}>
+                Nažalost ta stranica ne postoji.
               </Text>
               <Link to="/" className={styles.link}>
-                <span>Back to home</span>
+                <span>Povratak</span>
                 <ChevronRight className={styles.linkChevron} />
               </Link>
             </Flex>

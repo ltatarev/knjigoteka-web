@@ -22,6 +22,16 @@ globalStyle("blockquote", {
   marginInlineStart: 0,
 })
 
+globalStyle("a", { 
+  color: theme.colors.text,
+  textDecoration: "none",
+})
+
+globalStyle("a:hover", {
+  fontWeight: "bold",
+  textDecoration: "none",
+})
+
 globalKeyframes("zoomInUp", {
   "0%": {
     transform: "scale(0.95) translateY(10px) translateX(-50%)",

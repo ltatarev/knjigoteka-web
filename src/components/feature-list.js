@@ -4,6 +4,8 @@ import { Container, Box, Kicker, Heading, Text } from "./ui";
 import Feature from "./feature";
 
 export default function FeatureList(props) {
+  // TODO: Show only top 3 features on homepage
+
   return (
     <Container width="fullbleed">
       <Box background="muted" radius="large">

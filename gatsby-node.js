@@ -248,6 +248,12 @@ exports.createSchemaCustomization = async ({ actions }) => {
       content: [HomepageBlock]
     }
 
+    interface NewsPage implements Node {
+      id: ID!
+      title: String
+      content: [HomepageBlock]
+    }
+
     interface AboutHero implements Node & HomepageBlock {
       id: ID!
       blocktype: String
@@ -291,6 +297,13 @@ exports.createSchemaCustomization = async ({ actions }) => {
       description: String
       image: HomepageImage
       html: String!
+    }
+
+    interface Asset implements Node {
+      id: ID!
+      alt: String
+      gatsbyImageData: JSON @imagePassthroughArgs
+      url: String
     }
   `);
 
@@ -416,6 +429,15 @@ exports.createSchemaCustomization = async ({ actions }) => {
       title: String
       description: String
       image: HomepageImage @link(from: "image___NODE")
+      content: [HomepageBlock] @link(from: "content___NODE")
+    }
+  `);
+
+  // CMS specific types for News page
+  actions.createTypes(/* GraphQL */ `
+    type ContentfulNewsPage implements Node & NewsPage @dontInfer {
+      id: ID!
+      title: String
       content: [HomepageBlock] @link(from: "content___NODE")
     }
   `);

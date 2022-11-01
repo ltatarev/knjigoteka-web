@@ -1,22 +1,37 @@
 import * as React from "react";
+import { graphql } from "gatsby";
 import Layout from "../components/layout";
-import { Container, Box, Text, Flex } from "../components/ui";
-import * as styles from "../components/404.css";
+import Feature from "../components/feature";
 
-export default function News() {
+export default function News(props) {
+  const { newsPage } = props.data;
+
   return (
-    <Layout title="Kontakt">
-      <Box paddingY={4}>
-        <Container>
-          <Flex variant="column">
-            <Flex variant="column" gap={0}>
-              <Text variant="lead" className={styles.text}>
-                News
-              </Text>
-            </Flex>
-          </Flex>
-        </Container>
-      </Box>
+    <Layout {...newsPage}>
+      {newsPage.blocks.map((block, i) => {
+        const { id, blocktype, ...componentProps } = block;
+        return (
+          <Feature
+            background="background"
+            key={id}
+            {...componentProps}
+            flip={Boolean(i % 2)}
+          />
+        );
+      })}
     </Layout>
   );
 }
+
+export const query = graphql`
+  {
+    newsPage {
+      title
+      blocks: content {
+        id
+        blocktype
+        ...HomepageFeatureContent
+      }
+    }
+  }
+`;

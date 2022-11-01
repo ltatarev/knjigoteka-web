@@ -1,5 +1,5 @@
-import * as React from "react"
-import { Helmet } from "react-helmet"
+import * as React from "react";
+import { Helmet } from "react-helmet";
 
 export default function Head({ title, description, image }) {
   return (
@@ -24,5 +24,5 @@ export default function Head({ title, description, image }) {
       {description && <meta name="twitter:description" content={description} />}
       {image && <meta name="twitter:image" content={image.url} />}
     </Helmet>
-  )
+  );
 }

@@ -1,5 +1,5 @@
 {
-  "name": "gatsby-starter-contentful-homepage",
+  "name": "knjigoteka-web",
   "version": "1.0.0",
   "scripts": {
     "start": "gatsby develop",
@@ -7,6 +7,7 @@
     "build": "gatsby build",
     "serve": "gatsby serve",
     "clean": "gatsby clean",
+    "deploy": "gatsby build --prefix-paths && gh-pages -d public",
     "export-content": "contentful space export --space-id=$SPACE_ID --management-token=$MANAGEMENT_TOKEN --export-dir=scripts --content-file=data.json"
   },
   "dependencies": {

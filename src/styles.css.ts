@@ -14,6 +14,14 @@ globalStyle("*", {
   boxSizing: "border-box",
 })
 
+globalStyle("blockquote", {
+  fontWeight: "bold",
+  borderLeft: "10px #e76f51 solid",
+  backgroundColor: "#e76f5125",
+  padding: "10px",
+  marginInlineStart: 0,
+})
+
 globalKeyframes("zoomInUp", {
   "0%": {
     transform: "scale(0.95) translateY(10px) translateX(-50%)",

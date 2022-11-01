@@ -1,15 +1,15 @@
-import * as React from "react"
-import { graphql } from "gatsby"
-import { GatsbyImage, getImage } from "gatsby-plugin-image"
+import * as React from "react";
+import { graphql } from "gatsby";
+import { GatsbyImage, getImage } from "gatsby-plugin-image";
 import {
-  Nudge,
   Container,
   Section,
   Heading,
   Text,
   ButtonList,
   Kicker,
-} from "./ui"
+  Flex,
+} from "./ui";
 
 export default function HomepageCta(props) {
   return (
@@ -24,16 +24,16 @@ export default function HomepageCta(props) {
         </Text>
         <ButtonList links={props.links} variant="center" reversed />
         {props.image && (
-          <Nudge left={5} right={5} bottom={5}>
+          <Flex variant="center">
             <GatsbyImage
               alt={props.image.alt}
               image={getImage(props.image.gatsbyImageData)}
             />
-          </Nudge>
+          </Flex>
         )}
       </Section>
     </Container>
-  )
+  );
 }
 
 export const query = graphql`
@@ -53,4 +53,4 @@ export const query = graphql`
       text
     }
   }
-`
+`;

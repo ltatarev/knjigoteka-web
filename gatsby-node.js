@@ -1,5 +1,5 @@
-const { documentToHtmlString } = require("@contentful/rich-text-html-renderer")
-const { getGatsbyImageResolver } = require("gatsby-plugin-image/graphql-utils")
+const { documentToHtmlString } = require("@contentful/rich-text-html-renderer");
+const { getGatsbyImageResolver } = require("gatsby-plugin-image/graphql-utils");
 
 exports.createSchemaCustomization = async ({ actions }) => {
   actions.createFieldExtension({
@@ -7,37 +7,37 @@ exports.createSchemaCustomization = async ({ actions }) => {
     extend(options) {
       return {
         resolve(source) {
-          return source.internal.type.replace("Contentful", "")
+          return source.internal.type.replace("Contentful", "");
         },
-      }
+      };
     },
-  })
+  });
 
   actions.createFieldExtension({
     name: "imagePassthroughArgs",
     extend(options) {
-      const { args } = getGatsbyImageResolver()
+      const { args } = getGatsbyImageResolver();
       return {
         args,
-      }
+      };
     },
-  })
+  });
 
   actions.createFieldExtension({
     name: "imageUrl",
     extend(options) {
-      const schemaRE = /^\/\//
+      const schemaRE = /^\/\//;
       const addURLSchema = (str) => {
-        if (schemaRE.test(str)) return `https:${str}`
-        return str
-      }
+        if (schemaRE.test(str)) return `https:${str}`;
+        return str;
+      };
       return {
         resolve(source) {
-          return addURLSchema(source.file.url)
+          return addURLSchema(source.file.url);
         },
-      }
+      };
     },
-  })
+  });
 
   actions.createFieldExtension({
     name: "navItemType",
@@ -52,28 +52,28 @@ exports.createSchemaCustomization = async ({ actions }) => {
         resolve() {
           switch (options.name) {
             case "Group":
-              return "Group"
+              return "Group";
             default:
-              return "Link"
+              return "Link";
           }
         },
-      }
+      };
     },
-  })
+  });
 
   actions.createFieldExtension({
     name: "richText",
     extend(options) {
       return {
         resolve(source, args, context, info) {
-          const body = source.body
-          const doc = JSON.parse(body.raw)
-          const html = documentToHtmlString(doc)
-          return html
+          const body = source.body;
+          const doc = JSON.parse(body.raw);
+          const html = documentToHtmlString(doc);
+          return html;
         },
-      }
+      };
     },
-  })
+  });
 
   // abstract interfaces
   actions.createTypes(/* GraphQL */ `
@@ -292,7 +292,7 @@ exports.createSchemaCustomization = async ({ actions }) => {
       image: HomepageImage
       html: String!
     }
-  `)
+  `);
 
   // CMS-specific types for Homepage
   actions.createTypes(/* GraphQL */ `
@@ -418,7 +418,7 @@ exports.createSchemaCustomization = async ({ actions }) => {
       image: HomepageImage @link(from: "image___NODE")
       content: [HomepageBlock] @link(from: "content___NODE")
     }
-  `)
+  `);
 
   // CMS specific types for About page
   actions.createTypes(/* GraphQL */ `
@@ -468,7 +468,7 @@ exports.createSchemaCustomization = async ({ actions }) => {
       image: HomepageImage @link(from: "image___NODE")
       content: [HomepageBlock] @link(from: "content___NODE")
     }
-  `)
+  `);
 
   // Layout types
   actions.createTypes(/* GraphQL */ `
@@ -497,7 +497,7 @@ exports.createSchemaCustomization = async ({ actions }) => {
       header: LayoutHeader @link(from: "header___NODE")
       footer: LayoutFooter @link(from: "footer___NODE")
     }
-  `)
+  `);
 
   // Page types
   actions.createTypes(/* GraphQL */ `
@@ -509,5 +509,5 @@ exports.createSchemaCustomization = async ({ actions }) => {
       image: HomepageImage @link(from: "image___NODE")
       html: String! @richText
     }
-  `)
-}
+  `);
+};

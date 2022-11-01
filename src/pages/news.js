@@ -3,7 +3,7 @@ import Layout from "../components/layout";
 import { Container, Box, Text, Flex } from "../components/ui";
 import * as styles from "../components/404.css";
 
-export default function Contact() {
+export default function News() {
   return (
     <Layout title="Kontakt">
       <Box paddingY={4}>
@@ -11,8 +11,7 @@ export default function Contact() {
           <Flex variant="column">
             <Flex variant="column" gap={0}>
               <Text variant="lead" className={styles.text}>
-                Radno vrijeme udruge: utorak, od 17 do 19 sati Dom kulture
-                Bilje, Ul. kralja Zvonimira 2, Bilje
+                News
               </Text>
             </Flex>
           </Flex>

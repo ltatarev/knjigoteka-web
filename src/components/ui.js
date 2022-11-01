@@ -1,10 +1,10 @@
-import { Link as GatsbyLink } from "gatsby"
-import { GatsbyImage, getImage } from "gatsby-plugin-image"
-import isAbsoluteURL from "is-absolute-url"
-import * as React from "react"
-import * as styles from "./ui.css"
+import { Link as GatsbyLink } from "gatsby";
+import { GatsbyImage, getImage } from "gatsby-plugin-image";
+import isAbsoluteURL from "is-absolute-url";
+import * as React from "react";
+import * as styles from "./ui.css";
 
-export const cx = (...args) => args.filter(Boolean).join(" ")
+export const cx = (...args) => args.filter(Boolean).join(" ");
 
 export function Base({
   as: Component = "div",
@@ -12,11 +12,11 @@ export function Base({
   className,
   ...props
 }) {
-  return <Component className={cx(..._cx, className)} {...props} />
+  return <Component className={cx(..._cx, className)} {...props} />;
 }
 
 export function Container({ width = "normal", ...props }) {
-  return <Base cx={[styles.containers[width]]} {...props} />
+  return <Base cx={[styles.containers[width]]} {...props} />;
 }
 
 export function Flex({
@@ -45,7 +45,7 @@ export function Flex({
       ]}
       {...props}
     />
-  )
+  );
 }
 
 export function Box({
@@ -73,19 +73,19 @@ export function Box({
       ]}
       {...props}
     />
-  )
+  );
 }
 
 export function FlexList(props) {
-  return <Flex as="ul" cx={[styles.list]} {...props} />
+  return <Flex as="ul" cx={[styles.list]} {...props} />;
 }
 
 export function List(props) {
-  return <Base as="ul" cx={[styles.list]} {...props} />
+  return <Base as="ul" cx={[styles.list]} {...props} />;
 }
 
 export function Space({ size = "auto", ...props }) {
-  return <Base cx={[styles.margin[size]]} {...props} />
+  return <Base cx={[styles.margin[size]]} {...props} />;
 }
 
 export function Nudge({ left, right, top, bottom, ...props }) {
@@ -99,11 +99,11 @@ export function Nudge({ left, right, top, bottom, ...props }) {
       ]}
       {...props}
     />
-  )
+  );
 }
 
 export function Section(props) {
-  return <Box as="section" className={styles.section} {...props} />
+  return <Box as="section" className={styles.section} {...props} />;
 }
 
 export function Text({
@@ -121,55 +121,55 @@ export function Text({
       ]}
       {...props}
     />
-  )
+  );
 }
 
 export function SuperHeading({ ...props }) {
-  return <Text as="h1" variant="superHeading" {...props} />
+  return <Text as="h1" variant="superHeading" {...props} />;
 }
 
 export function Heading({ ...props }) {
-  return <Text as="h2" variant="heading" {...props} />
+  return <Text as="h2" variant="heading" {...props} />;
 }
 
 export function Subhead({ ...props }) {
-  return <Text as="h3" variant="subhead" {...props} />
+  return <Text as="h3" variant="subhead" {...props} />;
 }
 
 export function Kicker({ ...props }) {
-  return <Text variant="kicker" {...props} />
+  return <Text variant="kicker" {...props} />;
 }
 
 export function Link({ to, href, ...props }) {
-  const url = href || to || ""
+  const url = href || to || "";
   if (isAbsoluteURL(url)) {
     return (
       // eslint-disable-next-line jsx-a11y/anchor-has-content
       <a href={url} className={styles.link} {...props} />
-    )
+    );
   }
-  return <GatsbyLink to={url} className={styles.link} {...props} />
+  return <GatsbyLink to={url} className={styles.link} {...props} />;
 }
 
 export function NavLink({ ...props }) {
-  return <Base as={Link} cx={[styles.navlink]} {...props} />
+  return <Base as={Link} cx={[styles.navlink]} {...props} />;
 }
 
 export function NavButtonLink({ ...props }) {
-  return <Base as="button" cx={[styles.navButtonlink]} {...props} />
+  return <Base as="button" cx={[styles.navButtonlink]} {...props} />;
 }
 
 export function Button({ variant = "primary", ...props }) {
-  return <Base as={Link} cx={[styles.buttons[variant]]} {...props} />
+  return <Base as={Link} cx={[styles.buttons[variant]]} {...props} />;
 }
 
 export function ButtonList({ links = [], reversed = false, ...props }) {
   const getVariant = (i) => {
     if (reversed) {
-      return i === 0 ? "reversed" : "linkReversed"
+      return i === 0 ? "reversed" : "linkReversed";
     }
-    return i === 0 ? "primary" : "link"
-  }
+    return i === 0 ? "primary" : "link";
+  };
   return (
     <FlexList marginY={4} {...props}>
       {links &&
@@ -181,11 +181,11 @@ export function ButtonList({ links = [], reversed = false, ...props }) {
           </li>
         ))}
     </FlexList>
-  )
+  );
 }
 
 export function CTALink(props) {
-  return <Base as={Link} cx={[styles.ctaLink]} {...props} />
+  return <Base as={Link} cx={[styles.ctaLink]} {...props} />;
 }
 
 export function LinkList({ links = [], ...props }) {
@@ -198,17 +198,17 @@ export function LinkList({ links = [], ...props }) {
           </li>
         ))}
     </FlexList>
-  )
+  );
 }
 
 export function Blockquote(props) {
-  return <Base as="blockquote" cx={[styles.blockquote]} {...props} />
+  return <Base as="blockquote" cx={[styles.blockquote]} {...props} />;
 }
 
 export function Avatar({ alt, image }) {
   return (
     <GatsbyImage alt={alt} image={getImage(image)} className={styles.avatar} />
-  )
+  );
 }
 
 export function Logo({ alt, image, size = "small" }) {
@@ -218,7 +218,7 @@ export function Logo({ alt, image, size = "small" }) {
       image={getImage(image)}
       className={styles.logos[size]}
     />
-  )
+  );
 }
 
 export function Icon({ alt, image, size = "medium" }) {
@@ -228,21 +228,21 @@ export function Icon({ alt, image, size = "medium" }) {
       image={getImage(image)}
       className={styles.icons[size]}
     />
-  )
+  );
 }
 
 export function IconLink(props) {
-  return <NavLink cx={[styles.iconLink]} {...props} />
+  return <NavLink cx={[styles.iconLink]} {...props} />;
 }
 
 export function InteractiveIcon(props) {
-  return <Base as="button" cx={[styles.interactiveIcon]} {...props} />
+  return <Base as="button" cx={[styles.interactiveIcon]} {...props} />;
 }
 
 export function VisuallyHidden(props) {
-  return <Base as="span" cx={[styles.visuallyHidden]} {...props} />
+  return <Base as="span" cx={[styles.visuallyHidden]} {...props} />;
 }
 
 export function BlockLink(props) {
-  return <Link className={styles.blockLink} {...props} />
+  return <Link className={styles.blockLink} {...props} />;
 }

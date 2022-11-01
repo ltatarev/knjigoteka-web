@@ -1,7 +1,7 @@
-import * as React from "react"
-import { graphql } from "gatsby"
-import { Container, Box, Kicker, Heading, Text } from "./ui"
-import Feature from "./feature"
+import * as React from "react";
+import { graphql } from "gatsby";
+import { Container, Box, Kicker, Heading, Text } from "./ui";
+import Feature from "./feature";
 
 export default function FeatureList(props) {
   return (
@@ -19,7 +19,7 @@ export default function FeatureList(props) {
         ))}
       </Box>
     </Container>
-  )
+  );
 }
 
 export const query = graphql`
@@ -33,4 +33,4 @@ export const query = graphql`
       ...HomepageFeatureContent
     }
   }
-`
+`;

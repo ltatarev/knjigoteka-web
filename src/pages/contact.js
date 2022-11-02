@@ -1,11 +1,9 @@
 import * as React from "react";
-import { graphql } from "gatsby";
 import { StaticImage } from "gatsby-plugin-image";
 import Layout from "../components/layout";
 import { Container, Box, Text, Flex } from "../components/ui";
 
 export default function Contact(props) {
-  console.log(props);
   return (
     <Layout title="Kontakt">
       <Box>

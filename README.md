@@ -1,10 +1,10 @@
 # 📖 knjigoteka-web
 
 [![GitHub Pages](https://github.com/ltatarev/knjigoteka-web/actions/workflows/gatsby.yml/badge.svg)](https://github.com/ltatarev/knjigoteka-web/actions/workflows/gatsby.yml)
-![gatsbyjs](https://badgen.net/badge/icon/gatsbyjs?icon=sourcegraph&color=pink&label)
-![contentful cms](https://badgen.net/badge/icon/contentful-cms?icon=sourcegraph&color=blue&label)
-![graphql](https://badgen.net/badge/icon/graphql?icon=sourcegraph&color=purple&label)
-![prettier](https://img.shields.io/badge/code%20style-prettier-%23831843?logo=prettier&logoColor=white)
+![gatsby](https://user-images.githubusercontent.com/38048916/207946876-b4819d23-e6ab-4efc-b985-14c3c8311f60.svg)
+![contentful](https://user-images.githubusercontent.com/38048916/207946810-7482770a-7935-4b6b-8755-fb23bde28a60.svg)
+![graphql](https://user-images.githubusercontent.com/38048916/207946759-d88dbebb-d7da-42b7-a7f8-1c3d11a11fe7.svg)
+![prettier](https://user-images.githubusercontent.com/38048916/207946749-beafef70-a855-43a1-9d7c-4080beef67ba.svg)
 
 Organization landing page build with GatsbyJS and Contentful CMS.
 

@@ -2,7 +2,7 @@
   "name": "knjigoteka-web",
   "version": "1.0.0",
   "scripts": {
-    "start": "gatsby develop",
+    "start": "export NODE_OPTIONS==--no-experimental-fetch; gatsby develop",
     "develop": "gatsby develop",
     "build": "gatsby build",
     "serve": "gatsby serve",

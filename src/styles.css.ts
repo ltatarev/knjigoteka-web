@@ -8,6 +8,8 @@ globalStyle("body", {
   backgroundColor: theme.colors.background,
   WebkitFontSmoothing: "antialiased",
   MozOsxFontSmoothing: "grayscale",
+  lineHeight: "160%",
+  textAlign: "justify"
 })
 
 globalStyle("*", {
@@ -16,10 +18,15 @@ globalStyle("*", {
 
 globalStyle("blockquote", {
   fontWeight: "bold",
-  borderLeft: "10px #e76f51 solid",
+  borderLeft: "5px #e76f51 solid",
   backgroundColor: "#e76f5125",
-  padding: "10px",
+  paddingTop: "5px",
+  paddingBottom: "5px",
+  paddingLeft: "30px",
+  paddingRight: "30px",
   marginInlineStart: 0,
+  borderRadius: "15px",
+  width: "100%",
 })
 
 globalStyle("a", { 

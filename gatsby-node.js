@@ -63,10 +63,17 @@ exports.createSchemaCustomization = async ({ actions }) => {
 
   actions.createFieldExtension({
     name: "richText",
+    args: {
+      field: {
+        type: "String",
+        defaultValue: "body",
+      },
+    },
     extend(options) {
+      console.log(options)
       return {
         resolve(source, args, context, info) {
-          const body = source.body;
+          const body = source[options.field] || source.body;
           const doc = JSON.parse(body.raw);
           const html = documentToHtmlString(doc);
           return html;
@@ -296,7 +303,10 @@ exports.createSchemaCustomization = async ({ actions }) => {
       title: String
       description: String
       image: HomepageImage
-      html: String!
+      blogImages: [HomepageImage]
+      body: String!
+      body1: String
+      body2: String
     }
 
     interface Asset implements Node {
@@ -529,7 +539,10 @@ exports.createSchemaCustomization = async ({ actions }) => {
       title: String
       description: String
       image: HomepageImage @link(from: "image___NODE")
-      html: String! @richText
+      blogImages: [HomepageImage] @link(from: "blogImages___NODE")
+      body: String! @richText
+      body1: String @richText(field:"body1")
+      body2: String @richText(field:"body2")
     }
   `);
 };

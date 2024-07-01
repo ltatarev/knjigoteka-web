@@ -12,7 +12,7 @@ console.log(page)
       <Box paddingY={5}>
         <Container width="narrow">
           <Heading as="h1">{page.title}</Heading>
-          <GatsbyImage alt="" image={getImage(page.image)} style={{ borderRadius: '15px' }}/>
+          <GatsbyImage alt="" image={getImage(page.image)} style={{ borderRadius: '15px', maxHeight: '600px', }}/>
           <div
             dangerouslySetInnerHTML={{
               __html: page.body,

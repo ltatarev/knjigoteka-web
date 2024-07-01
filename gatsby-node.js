@@ -70,7 +70,6 @@ exports.createSchemaCustomization = async ({ actions }) => {
       },
     },
     extend(options) {
-      console.log(options)
       return {
         resolve(source, args, context, info) {
           const body = source[options.field] || source.body;
@@ -119,7 +118,7 @@ exports.createSchemaCustomization = async ({ actions }) => {
     interface HomepageImage implements Node {
       id: ID!
       alt: String
-      gatsbyImageData: JSON @imagePassthroughArgs
+      gatsbyImageData: GatsbyImageData @imagePassthroughArgs
       url: String
     }
 
@@ -312,7 +311,7 @@ exports.createSchemaCustomization = async ({ actions }) => {
     interface Asset implements Node {
       id: ID!
       alt: String
-      gatsbyImageData: JSON @imagePassthroughArgs
+      gatsbyImageData: GatsbyImageData @imagePassthroughArgs
       url: String
     }
   `);

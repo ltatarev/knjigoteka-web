@@ -29,7 +29,11 @@ console.log(page)
               __html: page.body2,
             }}
           />
-          <GatsbyImage alt="" image={getImage(page.blogImages[1])} style={{ borderRadius: '15px', height: '300px' }}/>
+          <GatsbyImage alt="" image={getImage(page.blogImages[1])} style={{ borderRadius: '15px', width: '100%', maxHeight: '300px', objectFit: 'cover' }}/>
+          <p>
+            <i>S ljubavlju prema knjigama,</i><br/>
+            <b>Knjigoteka Bilje</b>
+          </p>
         </Container>
       </Box>
     </Layout>

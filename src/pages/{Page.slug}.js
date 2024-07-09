@@ -6,14 +6,14 @@ import { GatsbyImage, getImage } from "gatsby-plugin-image";
 
 const coverImageStyle = {
   borderRadius: '15px',
-  maxHeight: '550px',
+  maxHeight: '500px',
   objectFit: 'cover',
 }
 
 const blogImageStyle = {
   borderRadius: '15px', 
   width: '100%', 
-  maxHeight: '300px', 
+  maxHeight: '350px', 
   objectFit: 'cover',
 }
 

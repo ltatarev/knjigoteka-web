@@ -24,7 +24,7 @@ export default function Feature(props) {
               <GatsbyImage
                 alt={props.image.alt}
                 image={getImage(props.image.gatsbyImageData)}
-                style={{borderRadius: 25}}
+                style={{borderRadius: 25, maxHeight: 330}}
               />
             )}
           </Box>

@@ -23,7 +23,7 @@ export default function Page(props) {
   return (
     <Layout {...page}>
       <Box paddingY={5}>
-        <Container width="narrow">
+        <Container width="tight">
           <Heading as="h1">{page.title}</Heading>
           <GatsbyImage alt="" image={getImage(page.image)} style={coverImageStyle}/>
           <div

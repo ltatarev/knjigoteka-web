@@ -2,23 +2,26 @@ import * as React from "react";
 import { graphql } from "gatsby";
 import Layout from "../components/layout";
 import Feature from "../components/feature";
+import { Container } from '../components/ui';
 
 export default function News(props) {
   const { newsPage } = props.data;
 
   return (
     <Layout {...newsPage}>
-      {newsPage.blocks.map((block, i) => {
-        const { id, blocktype, ...componentProps } = block;
-        return (
-          <Feature
-            background="background"
-            key={id}
-            {...componentProps}
-            flip={Boolean(i % 2)}
-          />
-        );
-      })}
+      <Container>
+        {newsPage.blocks.map((block, i) => {
+          const { id, blocktype, ...componentProps } = block;
+          return (
+            <Feature
+              background="background"
+              key={id}
+              {...componentProps}
+              flip={Boolean(i % 2)}
+            />
+          );
+        })}
+      </Container>
     </Layout>
   );
 }

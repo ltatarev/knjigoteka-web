@@ -16,7 +16,7 @@ export default function Feature(props) {
   const background = props?.background || "muted";
 
   return (
-    <Section padding={4} background={background}>
+    <Section padding={1} background={background}>
       <Container>
         <Flex gap={4} variant="responsive">
           <Box width="half" order={props.flip ? 1 : null}>

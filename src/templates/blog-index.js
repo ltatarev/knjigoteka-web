@@ -14,6 +14,7 @@ import {
 } from "../components/ui"
 
 function PostCard({ slug, image, title, excerpt, author, category, ...props }) {
+  
   return (
     <BlockLink {...props} to={`/blog/${slug}`}>
       {image && (

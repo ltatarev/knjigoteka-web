@@ -62,7 +62,7 @@ jobs:
           echo CONTENTFUL_SPACE_ID=${{ secrets.CONTENTFUL_SPACE_ID }} >> .env 
       - name: Setup Pages
         id: pages
-        uses: actions/configure-pages@v2
+        uses: actions/configure-pages@v5
         with:
           # Automatically inject pathPrefix in your Gatsby configuration file.
           #

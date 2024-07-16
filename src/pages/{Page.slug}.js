@@ -36,13 +36,13 @@ export default function Page(props) {
               __html: page.body1,
             }}
           />
-          <GatsbyImage alt="" image={getImage(page.blogImages[0])} style={blogImageStyle}/>
+          {page?.blogImages?.[0] && <GatsbyImage alt="" image={getImage(page.blogImages[0])} style={blogImageStyle}/>}
           <div
             dangerouslySetInnerHTML={{
               __html: page.body2,
             }}
           />
-          <GatsbyImage alt="" image={getImage(page.blogImages[1])} style={blogImageStyle}/>
+          {page?.blogImages?.[1] && <GatsbyImage alt="" image={getImage(page.blogImages[1])} style={blogImageStyle}/>}
           <p>
             <i>S ljubavlju prema knjigama,</i><br/>
             <b>Knjigoteka Bilje</b>

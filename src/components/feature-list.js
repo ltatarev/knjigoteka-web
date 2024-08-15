@@ -1,6 +1,6 @@
 import * as React from "react";
 import { graphql } from "gatsby";
-import { Container, Box, Kicker, Heading, Text } from "./ui";
+import { Container, Box, Kicker, Heading, Text, Link } from "./ui";
 import Feature from "./feature";
 
 export default function FeatureList(props) {
@@ -12,7 +12,7 @@ export default function FeatureList(props) {
         <Box center paddingY={5}>
           <Heading>
             {props.kicker && <Kicker>{props.kicker}</Kicker>}
-            {props.heading}
+            <Link to={'/news'}>{props.heading}</Link>
           </Heading>
           {props.text && <Text>{props.text}</Text>}
         </Box>

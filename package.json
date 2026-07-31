@@ -2,12 +2,10 @@
   "name": "knjigoteka-web",
   "version": "1.0.0",
   "scripts": {
-    "start": "export NODE_OPTIONS==--no-experimental-fetch; gatsby develop",
-    "dev": "gatsby develop",
-    "build": "gatsby build",
-    "serve": "gatsby serve",
-    "clean": "gatsby clean",
-    "deploy": "gatsby build --prefix-paths && gh-pages -d public",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
     "export-content": "contentful space export --space-id=$SPACE_ID --management-token=$MANAGEMENT_TOKEN --export-dir=scripts --content-file=data.json"
   },
   "dependencies": {
@@ -17,6 +15,7 @@
     "@vanilla-extract/babel-plugin": "^1.1.4",
     "@vanilla-extract/css": "^1.6.8",
     "@vanilla-extract/css-utils": "^0.1.2",
+    "@vanilla-extract/next-plugin": "^2.5.2",
     "@vanilla-extract/webpack-plugin": "^2.1.5",
     "gatsby": "^5.13.6",
     "gatsby-plugin-image": "^3.13.1",
@@ -28,12 +27,16 @@
     "gatsby-transformer-sharp": "^5.13.0",
     "is-absolute-url": "^4.0.1",
     "leaflet": "^1.9.2",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "next": "^15.5.22",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "react-feather": "^2.0.9",
     "sharp": "0.32.6"
   },
   "devDependencies": {
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
     "chalk": "5",
     "contentful-cli": "^3.3.0",
     "contentful-import": "^9",
@@ -42,6 +45,7 @@
     "inquirer": "^9",
     "lint-staged": "^15",
     "prettier": "3.3.2",
+    "typescript": "^5.9.3",
     "yargs-parser": "^21.0.0"
   }
 }

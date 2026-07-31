@@ -1,7 +1,15 @@
 .env*
 !.env.EXAMPLE
 node_modules
-.cache
-public
-dist
 .DS_Store
+
+# next
+.next
+out
+next-env.d.ts
+.netlify
+*.tsbuildinfo
+
+# gatsby (removed in phase 7)
+.cache
+dist

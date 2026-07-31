@@ -74,6 +74,36 @@ export function FeatureImage(props: { src: string; alt: string }) {
   )
 }
 
+/**
+ * GatsbyImage's default "constrained" layout with no style override: renders at
+ * intrinsic size, scales down to fit, never crops. Used by the homepage hero
+ * and CTA.
+ */
+export function ConstrainedImage({
+  src,
+  alt,
+  sizes = HALF_SIZES,
+  priority = false,
+}: {
+  src: string
+  alt: string
+  sizes?: string
+  priority?: boolean
+}) {
+  const { width, height } = imageSize(src)
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      width={width}
+      height={height}
+      sizes={sizes}
+      style={{ maxWidth: "100%", height: "auto" }}
+      priority={priority}
+    />
+  )
+}
+
 /** Uncropped — the live about hero set only width:100% on its wrapper. */
 export function AboutHeroImage({ src, alt }: { src: string; alt: string }) {
   const { width, height } = imageSize(src)

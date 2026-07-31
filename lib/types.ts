@@ -94,6 +94,67 @@ export type AboutStatListBlock = {
 
 export type AboutBlock = AboutHeroBlock | AboutStatListBlock | BenefitListBlock
 
+export type HeroBlock = {
+  type: "homepageHero"
+  kicker?: string
+  heading: string
+  subhead?: string
+  text?: string
+  image?: SiteImage
+  links?: SiteLink[]
+}
+
+export type Product = {
+  type: "homepageProduct"
+  image?: SiteImage
+  heading?: string
+  text?: string
+}
+
+export type ProductListBlock = {
+  type: "homepageProductList"
+  kicker?: string
+  heading?: string
+  text?: string
+  content: Product[]
+}
+
+/**
+ * The homepage "Novosti" block. Its `content` in homepage.json duplicates post
+ * data and is ignored — the cards are built from the posts collection, so a new
+ * post can appear without editing this file. Which posts appear is pinned in
+ * lib/news-order.ts.
+ */
+export type FeatureListBlock = {
+  type: "homepageFeatureList"
+  kicker?: string
+  heading?: string
+  text?: string
+}
+
+export type CtaBlock = {
+  type: "homepageCta"
+  kicker?: string
+  heading?: string
+  text?: string
+  image?: SiteImage
+  links?: SiteLink[]
+}
+
+export type HomepageBlock =
+  | HeroBlock
+  | ProductListBlock
+  | FeatureListBlock
+  | BenefitListBlock
+  | CtaBlock
+
+export type HomepageData = {
+  title: string
+  description: string
+  image?: SiteImage
+  content: HomepageBlock[]
+}
+
 export type AboutData = {
   title: string
   description: string

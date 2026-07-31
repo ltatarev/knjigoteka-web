@@ -16,15 +16,29 @@ import { style } from "@vanilla-extract/css"
 const imageBox = style({
   position: "relative",
   overflow: "hidden",
-  borderRadius: "15px",
 })
 
-// Cover: constrained to the image's intrinsic width (set inline per image).
-export const coverImage = style([imageBox, { maxHeight: "500px" }])
+// Post cover: constrained to the image's intrinsic width (set inline per image).
+export const coverImage = style([
+  imageBox,
+  { borderRadius: "15px", maxHeight: "500px" },
+])
 
 // In-post: the live wrapper carried an explicit width:100%, so these stretch to
 // the container even when the source is narrower.
 export const bodyImage = style([
   imageBox,
-  { width: "100%", maxHeight: "350px" },
+  { borderRadius: "15px", width: "100%", maxHeight: "350px" },
 ])
+
+// Feature cards on /news/ and the homepage.
+export const featureImage = style([
+  imageBox,
+  { borderRadius: "25px", maxHeight: "330px" },
+])
+
+// The about hero is uncropped — its class set only width:100%.
+export const aboutHeroImage = style({
+  width: "100%",
+  height: "auto",
+})

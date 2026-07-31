@@ -4,14 +4,13 @@ import Header from "@/components/header"
 import Footer from "@/components/footer"
 import "@/styles/global.css"
 
-// Defaults from gatsby-config.js siteMetadata. Individual pages override title
-// and description; the Gatsby Head component applied no title template, so
-// neither do we.
+// Every page sets its own tags through lib/metadata.ts. Deliberately no default
+// description: the Gatsby Head component emitted one only when the page carried
+// it, so a fallback here would add descriptions the live site does not have.
+// The Head component applied no title template either, so neither do we.
 export const metadata: Metadata = {
   metadataBase: new URL("https://knjigoteka.club"),
   title: "Knjigoteka Bilje",
-  description: "Udruga ljubitelja knjiga Bilje",
-  twitter: { card: "summary" },
 }
 
 export default function RootLayout({

@@ -57,6 +57,50 @@ export type SocialLink = {
   username: string
 }
 
+// --- content/data block types ------------------------------------------------
+// Each `type` is the id of the Contentful content type the block came from.
+
+export type Benefit = {
+  type: "homepageBenefit"
+  image?: SiteImage
+  heading: string
+  text?: string
+}
+
+export type BenefitListBlock = {
+  type: "homepageBenefitList"
+  heading?: string
+  text?: string
+  content: Benefit[]
+}
+
+export type AboutHeroBlock = {
+  type: "aboutHero"
+  heading: string
+  text?: string
+  image?: SiteImage
+}
+
+export type AboutStat = {
+  type: "aboutNumbers"
+  value: string
+  label: string
+}
+
+export type AboutStatListBlock = {
+  type: "aboutStatList"
+  content: AboutStat[]
+}
+
+export type AboutBlock = AboutHeroBlock | AboutStatListBlock | BenefitListBlock
+
+export type AboutData = {
+  title: string
+  description: string
+  image?: SiteImage
+  content: AboutBlock[]
+}
+
 export type LayoutData = {
   name: string
   header: {

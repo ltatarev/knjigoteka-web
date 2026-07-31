@@ -1,5 +1,5 @@
 import { MDXRemote } from "next-mdx-remote/rsc"
-import { BodyImage } from "./post-image"
+import { BodyImage } from "./framed-image"
 
 /**
  * Renders a post body.

@@ -1,9 +1,10 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { Container, Box, Heading } from "@/components/ui"
-import { CoverImage } from "@/components/post-image"
+import { CoverImage } from "@/components/framed-image"
 import MdxContent from "@/components/mdx-content"
 import { getAllPostSlugs, getPostBySlug } from "@/lib/posts"
+import { pageMetadata } from "@/lib/metadata"
 
 // Posts live at root-level slugs (/rebecca/, /book-club-muza/, ...). Anything
 // not in content/posts is a 404, same as Gatsby.
@@ -22,25 +23,13 @@ export async function generateMetadata({
   const post = getPostBySlug(slug)
   if (!post) return {}
 
-  // The Gatsby Head component used the `description` field; `excerpt` backs it
-  // up for the posts where Contentful left description empty.
-  const description = post.description || post.excerpt
-
-  return {
+  return pageMetadata({
     title: post.title,
-    description,
-    openGraph: {
-      title: post.title,
-      description,
-      images: [post.coverImage.src],
-    },
-    twitter: {
-      card: "summary",
-      title: post.title,
-      description,
-      images: [post.coverImage.src],
-    },
-  }
+    // The Gatsby Head component used the `description` field; `excerpt` backs
+    // it up for the posts where Contentful left description empty.
+    description: post.description || post.excerpt,
+    image: post.coverImage.src,
+  })
 }
 
 export default async function PostPage({

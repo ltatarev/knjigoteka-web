@@ -1,15 +1,9 @@
 .env*
-!.env.EXAMPLE
 node_modules
 .DS_Store
 
 # next
 .next
-out
+out/
 next-env.d.ts
-.netlify
 *.tsbuildinfo
-
-# gatsby (removed in phase 7)
-.cache
-dist

@@ -1,5 +1,9 @@
 import type { MetadataRoute } from "next"
 
+// Required by output: "export" — metadata routes are route handlers, and
+// static export needs them pinned to static.
+export const dynamic = "force-static"
+
 // Replaces gatsby-plugin-manifest. Same name, colours and start_url.
 export default function manifest(): MetadataRoute.Manifest {
   return {

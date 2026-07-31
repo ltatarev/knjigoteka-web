@@ -3,7 +3,7 @@
 Landing page for **Knjigoteka Bilje** — „Knjiga za sve", Udruga ljubitelja knjiga Bilje.
 <https://knjigoteka.club>
 
-Next.js 15 (App Router) · TypeScript · vanilla-extract · MDX · deployed on Netlify.
+Next.js 15 (App Router) · TypeScript · vanilla-extract · MDX · static export to GitHub Pages.
 
 Previously Gatsby 5 + Contentful; see the migration notes at the bottom.
 
@@ -17,8 +17,8 @@ npm run dev          # http://localhost:3000
 | script | what it does |
 | --- | --- |
 | `npm run dev` | dev server |
-| `npm run build` | production build; prerenders every page |
-| `npm start` | serve the production build |
+| `npm run build` | static export; writes the whole site to `out/` |
+| `npm run preview` | serve `out/` locally the way Pages does |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run verify:posts` | lists all posts, checks images resolve and bodies compile |
 
@@ -46,9 +46,6 @@ Everything editable lives in `content/`:
 
 Images referenced from content live in `public/images/` and are written as
 public-root paths (`/images/posts/rebecca-cover.jpg`).
-
-`keystatic.config.ts` is present but **not wired up** — the schema matches the
-MDX files and is ready if a CMS admin is added later.
 
 ### Adding a post
 
@@ -84,14 +81,29 @@ a style inconsistency — **do not normalise them.**
 
 ## Deployment
 
-Netlify, configured by `netlify.toml`. Netlify's Next.js Runtime v5 is applied
-automatically for Next 13.5+; do not add `@netlify/plugin-nextjs` manually.
+GitHub Pages, via `.github/workflows/deploy.yml` on push to `main`.
 
-The site runs in **server mode**, not `output: "export"` — but every page is
-still prerendered at build time.
+The site is a **static export** (`output: "export"` in `next.config.ts`) — Pages
+serves files only, there is no Next server. `npm run build` writes everything to
+`out/`, which the workflow uploads as the Pages artifact.
 
-> **DNS is a manual step.** The old GitHub Pages `CNAME` file has been removed.
-> Point `knjigoteka.club` at Netlify in the Netlify dashboard.
+Two files in `public/` matter for this and are copied into `out/` verbatim:
+
+- **`CNAME`** — the custom domain. Without it Pages drops back to the
+  `github.io` address on the next deploy.
+- **`.nojekyll`** — stops Pages running Jekyll, which would otherwise strip the
+  `_next/` directory and take every stylesheet and script with it.
+
+### Images are not optimised
+
+Static hosting means `next/image`'s optimiser cannot run, so
+`images.unoptimized` is set and images are served at their source resolution.
+Lighthouse reports roughly 800 KiB of avoidable image bytes on a post page and
+1.7 MB on the homepage, against a Gatsby build that served responsive srcsets
+from Contentful's CDN.
+
+Fixing this needs build-time image generation: pre-render WebP variants at a few
+widths and point `next/image` at them with a custom loader.
 
 ## Notes from the Gatsby → Next migration
 
@@ -110,4 +122,6 @@ Things that look like mistakes but are deliberate:
   `GatsbyImage` behaved. See `components/framed-image.css.ts`.
 
 `scripts/migrate-contentful.mjs` is kept as a record of how `content/` was
-produced. It is **no longer runnable** — the Contentful space is retired.
+produced. It is **no longer runnable** — the Contentful space is retired and
+`sharp` is no longer a dependency. `content/README.md` still refers to a
+`keystatic.config.ts` that has since been removed.

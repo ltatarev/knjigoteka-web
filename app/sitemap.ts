@@ -1,6 +1,10 @@
 import type { MetadataRoute } from "next"
 import { getAllPosts } from "@/lib/posts"
 
+// Required by output: "export" — metadata routes are route handlers, and
+// static export needs them pinned to static.
+export const dynamic = "force-static"
+
 const SITE = "https://knjigoteka.club"
 
 // trailingSlash is on, so every URL here ends in a slash — otherwise the

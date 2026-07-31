@@ -1,4 +1,5 @@
 import { MDXRemote } from "next-mdx-remote/rsc"
+import { BodyImage } from "./post-image"
 
 /**
  * Renders a post body.
@@ -9,9 +10,13 @@ import { MDXRemote } from "next-mdx-remote/rsc"
  * frontmatter regardless, so a string-in renderer fits. This runs as a Server
  * Component and ships no client JS.
  *
- * Phase 3 adds the component mapping that reproduces the live in-post image
- * styling; the bodies use only paragraphs, blockquotes, bold and images.
+ * Bodies use only paragraphs, blockquotes, bold and images.
  */
+const components = {
+  img: ({ src, alt }: { src?: string; alt?: string }) =>
+    src ? <BodyImage src={src} alt={alt ?? ""} /> : null,
+}
+
 export default function MdxContent({ source }: { source: string }) {
-  return <MDXRemote source={source} />
+  return <MDXRemote source={source} components={components} />
 }

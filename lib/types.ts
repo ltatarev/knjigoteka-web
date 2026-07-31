@@ -11,6 +11,32 @@ export type SiteImage = {
   height: number
 }
 
+/**
+ * Post frontmatter carries no intrinsic dimensions — unlike the structural
+ * content in content/data/*.json, which the migration stamped with width and
+ * height. Post pages read the dimensions off disk at build time instead.
+ */
+export type PostImage = {
+  src: string
+  alt: string
+}
+
+export type Post = {
+  /** Filename without extension. This is the live URL path — never derived. */
+  slug: string
+  title: string
+  listingTitle: string
+  /** Normalised to YYYY-MM-DD. */
+  date: string
+  kicker: string
+  description: string
+  excerpt: string
+  coverImage: PostImage
+  images: PostImage[]
+  /** Raw markdown body, unrendered. */
+  content: string
+}
+
 export type SiteLink = {
   type: "homepageLink"
   text: string

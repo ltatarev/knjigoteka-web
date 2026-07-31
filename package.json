@@ -6,49 +6,25 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "verify:posts": "node scripts/list-posts.mts",
-    "export-content": "contentful space export --space-id=$SPACE_ID --management-token=$MANAGEMENT_TOKEN --export-dir=scripts --content-file=data.json"
+    "verify:posts": "node scripts/list-posts.mts"
   },
   "dependencies": {
-    "@contentful/rich-text-html-renderer": "^16.6.1",
-    "@fontsource/dm-mono": "^5.0.20",
-    "@fontsource/dm-sans": "^5.0.21",
-    "@vanilla-extract/babel-plugin": "^1.1.4",
     "@vanilla-extract/css": "^1.6.8",
     "@vanilla-extract/css-utils": "^0.1.2",
     "@vanilla-extract/next-plugin": "^2.5.2",
-    "@vanilla-extract/webpack-plugin": "^2.1.5",
-    "gatsby": "^5.13.6",
-    "gatsby-plugin-image": "^3.13.1",
-    "gatsby-plugin-manifest": "^5.13.1",
-    "gatsby-plugin-sharp": "^5.13.0",
-    "gatsby-plugin-vanilla-extract": "^4.0.2",
-    "gatsby-source-contentful": "^8.13.2",
-    "gatsby-source-filesystem": "^5.13.0",
-    "gatsby-transformer-sharp": "^5.13.0",
     "gray-matter": "^4.0.3",
-    "is-absolute-url": "^4.0.1",
-    "leaflet": "^1.9.2",
     "next": "^15.5.22",
     "next-mdx-remote": "^6.0.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-feather": "^2.0.9",
-    "sharp": "0.32.6"
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
-    "chalk": "5",
-    "contentful-cli": "^3.3.0",
-    "contentful-import": "^9",
-    "gh-pages": "^3",
-    "husky": "^9",
-    "inquirer": "^9",
-    "lint-staged": "^15",
     "prettier": "3.3.2",
-    "typescript": "^5.9.3",
-    "yargs-parser": "^21.0.0"
+    "typescript": "^5.9.3"
   }
 }

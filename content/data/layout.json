@@ -1,0 +1,58 @@
+{
+  "name": "Site Layout",
+  "header": {
+    "type": "layoutHeader",
+    "name": "Header",
+    "navItems": [
+      {
+        "type": "navItem",
+        "text": "O nama",
+        "href": "/about"
+      },
+      {
+        "type": "navItem",
+        "text": "Novosti",
+        "href": "/news"
+      },
+      {
+        "type": "navItem",
+        "text": "Kontakt",
+        "href": "/contact"
+      }
+    ]
+  },
+  "footer": {
+    "type": "layoutFooter",
+    "name": "Footer",
+    "links": [
+      {
+        "type": "homepageLink",
+        "text": "O nama",
+        "href": "/about"
+      },
+      {
+        "type": "homepageLink",
+        "text": "Novosti",
+        "href": "/news"
+      },
+      {
+        "type": "homepageLink",
+        "text": "Kontakt",
+        "href": "/contact"
+      }
+    ],
+    "socialLinks": [
+      {
+        "type": "socialLink",
+        "service": "INSTAGRAM",
+        "username": "knjigotekabilje/"
+      },
+      {
+        "type": "socialLink",
+        "service": "FACEBOOK",
+        "username": "knjigotekabilje"
+      }
+    ],
+    "copyright": "© 2024 Knjigoteka Bilje. Sva prava pridržana."
+  }
+}

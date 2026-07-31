@@ -1,0 +1,131 @@
+{
+  "title": "O nama",
+  "description": "O nama",
+  "image": {
+    "src": "/images/site/about-image.png",
+    "alt": "About Image",
+    "width": 1600,
+    "height": 414,
+    "bytesBefore": 68553,
+    "bytesAfter": 44224
+  },
+  "content": [
+    {
+      "type": "aboutHero",
+      "heading": "O nama",
+      "text": "„Knjiga za sve“ - Udruga ljubitelja knjiga Bilje je udruga osnovana s ciljem populariziranja knjiga, promicanja i širenja ljepote i vrijednosti pisane riječi djeci i odraslima. Svojim radom želimo potaknuti kulturu čitanja.",
+      "image": {
+        "src": "/images/site/about-image.png",
+        "alt": "About Image",
+        "width": 1600,
+        "height": 414,
+        "bytesBefore": 68553,
+        "bytesAfter": 44224
+      }
+    },
+    {
+      "type": "aboutStatList",
+      "content": [
+        {
+          "type": "aboutNumbers",
+          "value": "2020.",
+          "label": "godine"
+        },
+        {
+          "type": "aboutNumbers",
+          "value": "1000+",
+          "label": "knjiga"
+        },
+        {
+          "type": "aboutNumbers",
+          "value": "50+",
+          "label": "članova"
+        }
+      ]
+    },
+    {
+      "type": "homepageBenefitList",
+      "heading": "Djelatnosti kojima se bavimo:",
+      "content": [
+        {
+          "type": "homepageBenefit",
+          "image": {
+            "src": "/images/site/book-icon.png",
+            "alt": "Book Icon",
+            "width": 489,
+            "height": 489,
+            "bytesBefore": 4095,
+            "bytesAfter": 4085
+          },
+          "heading": "Okupljanje, povezivanje i druženje kolekcionara i ljubitelja knjiga",
+          "text": "Organiziranje sajmova knjiga te razmjena knjiga. Organiziranje book cluba."
+        },
+        {
+          "type": "homepageBenefit",
+          "image": {
+            "src": "/images/site/book-icon.png",
+            "alt": "Book Icon",
+            "width": 489,
+            "height": 489,
+            "bytesBefore": 4095,
+            "bytesAfter": 4085
+          },
+          "heading": "Organizacijom radionica i susreta",
+          "text": "Organizacija edukativnih i kreativnih radionica za djecu i mlade organiziranje književnih skupova, književnih susreta, seminara, radionica, manifestacija i festivala čiji su nositelji članovi udruge"
+        },
+        {
+          "type": "homepageBenefit",
+          "image": {
+            "src": "/images/site/book-icon.png",
+            "alt": "Book Icon",
+            "width": 489,
+            "height": 489,
+            "bytesBefore": 4095,
+            "bytesAfter": 4085
+          },
+          "heading": "Izdavačko-nakladničke aktivnosti",
+          "text": "Izdavanje knjiga, letaka, plakata, brošura, multimedijalnih sadržaja i drugih promotivnih tiskovina"
+        },
+        {
+          "type": "homepageBenefit",
+          "image": {
+            "src": "/images/site/book-icon.png",
+            "alt": "Book Icon",
+            "width": 489,
+            "height": 489,
+            "bytesBefore": 4095,
+            "bytesAfter": 4085
+          },
+          "heading": "Objavljivanje publikacija",
+          "text": "Objavljivanje književne, likovne, kulturalne i stručne publikacije iz područja djelatnosti udruge, sukladno Zakonu"
+        },
+        {
+          "type": "homepageBenefit",
+          "image": {
+            "src": "/images/site/book-icon.png",
+            "alt": "Book Icon",
+            "width": 489,
+            "height": 489,
+            "bytesBefore": 4095,
+            "bytesAfter": 4085
+          },
+          "heading": "Suradnja s ustanovama i udrugama",
+          "text": "Suradnja s vrtićima, školama, knjižnicama te drugim udrugama sličnog i srodnog karaktera u zemlji i inozemstvu"
+        },
+        {
+          "type": "homepageBenefit",
+          "image": {
+            "src": "/images/site/book-icon.png",
+            "alt": "Book Icon",
+            "width": 489,
+            "height": 489,
+            "bytesBefore": 4095,
+            "bytesAfter": 4085
+          },
+          "heading": "Provedba programa",
+          "text": "Razvijanje programa međunarodne suradnje te uključivanjem u rad drugih udruga kojima je cilj poboljšanje dijaloga umjetnika i društva"
+        }
+      ]
+    }
+  ]
+}

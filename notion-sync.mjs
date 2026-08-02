@@ -5,10 +5,11 @@
  *   export NOTION_TOKEN=ntn_xxx
  *   export NOTION_DATABASE_ID=xxxxxxxxxxxx
  *
- *   node notion-sync.mjs --list          # what's ready to publish
- *   node notion-sync.mjs --dry-run       # convert, print, write nothing
- *   node notion-sync.mjs                 # write MDX + images
- *   node notion-sync.mjs --page <id|url> # one specific page
+ *   node notion-sync.mjs --list           # what's ready to publish
+ *   node notion-sync.mjs --dry-run        # convert, print, write nothing
+ *   node notion-sync.mjs                  # write MDX + images
+ *   node notion-sync.mjs --page <id|url>  # one specific page
+ *   node notion-sync.mjs --report r.json  # also write a machine-readable run report
  *
  * Setup:
  *   1. notion.so/my-integrations → new internal integration → copy token
@@ -75,6 +76,14 @@ const flagValue = (f) => {
 const LIST = has('--list');
 const DRY_RUN = has('--dry-run');
 const ONE_PAGE = flagValue('--page');
+
+/**
+ * Where to write the run report. The CI job builds a pull request title and
+ * body out of it, so it must describe the run completely — including a run
+ * where nothing was ready and a run where every page was rejected. Scraping
+ * that back out of the console output would break the moment a log line moved.
+ */
+const REPORT = flagValue('--report');
 
 const warn = (...a) => console.warn('  ⚠ ', ...a);
 
@@ -454,6 +463,7 @@ async function main() {
 
   if (!pages.length) {
     console.log(`\nNothing with Status = "${STATUS_READY}".\n`);
+    await writeReport([], []);
     return;
   }
 
@@ -483,6 +493,8 @@ async function main() {
   const existingByNotionId = await indexExistingPosts();
   /** Pages we refused to write. Reported at the end and reflected in the exit code. */
   const failures = [];
+  /** Pages we did write. Becomes the body of the pull request. */
+  const synced = [];
 
   for (const page of pages) {
     const title = readProp(page, PROP.title);
@@ -558,11 +570,23 @@ async function main() {
       continue;
     }
 
+    const entry = {
+      title,
+      slug,
+      notionId: page.id,
+      url: page.url ?? null,
+      category,
+      isNew: !frozenSlug,
+      images: ctx.images.length,
+      warnings: ctx.warnings,
+    };
+
     if (DRY_RUN) {
       console.log('─'.repeat(60));
       console.log(`---\n${toYaml(front)}---\n\n${body}`);
       console.log('─'.repeat(60));
       console.log(`  ${ctx.images.length} images would download`);
+      synced.push(entry);
       continue;
     }
 
@@ -599,8 +623,11 @@ async function main() {
     }
 
     await fs.writeFile(target, `---\n${toYaml(front)}---\n\n${body}\n`, 'utf8');
+    synced.push(entry);
     console.log(`  ✓ written`);
   }
+
+  await writeReport(synced, failures);
 
   console.log(
     DRY_RUN
@@ -624,6 +651,18 @@ async function main() {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Machine-readable summary of the run, for CI. Written on every path that
+ * reaches the database — including "nothing was ready" — so the job can always
+ * tell an empty run from a crashed one. No file means the sync died before it
+ * got that far, which the job must treat as a failure rather than as silence.
+ */
+async function writeReport(posts, failures) {
+  if (!REPORT) return;
+  const report = { dryRun: DRY_RUN, posts, failures };
+  await fs.writeFile(REPORT, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+}
 
 function slugFor(page) {
   const explicit = readProp(page, PROP.slug);

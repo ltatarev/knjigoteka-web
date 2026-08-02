@@ -1,8 +1,9 @@
-name: Notion sync (dry run)
+name: Notion sync
 
-# Step 2 of the Notion → MDX pipeline: authenticate, query, and report what a
-# real sync *would* write. This workflow never commits and never writes back to
-# Notion — `--dry-run` is passed unconditionally below.
+# Step 3 of the Notion → MDX pipeline: convert every page marked "Za objavu",
+# commit the result to a branch, and open one pull request per run. Merging that
+# PR is what publishes. Nothing is written back to Notion yet — the status flip
+# and the live URL land in step 4.
 
 on:
   schedule:
@@ -22,68 +23,161 @@ on:
   push:
     branches: [refactor/nextjs]
 
-# Read-only until step 3 introduces a branch and a PR.
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
 
 # Two writers flipping status at the same time must not produce two competing
-# syncs. Serialising here is what later lets one run gather both posts into a
-# single PR. In-progress runs are never cancelled: once this workflow starts
-# committing, a cancelled run could leave a branch half-written.
+# syncs racing to force-push the same branch. In-progress runs are never
+# cancelled: a cancelled run can leave the branch half-written.
 concurrency:
   group: notion-sync
   cancel-in-progress: false
 
+env:
+  # One long-lived branch, force-pushed each run and rebuilt from scratch from
+  # whatever Notion currently says. A per-run branch would open a fresh pull
+  # request every 20 minutes for as long as the first one sat unmerged.
+  SYNC_BRANCH: notion-sync
+  REPORT: sync-report.json
+  BODY: pr-body.md
+  TITLE_FILE: pr-title.txt
+
 jobs:
-  dry-run:
+  sync:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         # The sync reads content/posts to map notionId → existing slug, which is
         # what freezes a published post's URL across a retitle. Without the
-        # checkout every post would look new and the dry run would lie.
-        uses: actions/checkout@v4
+        # checkout every post would look new.
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
 
-      # sharp is a devDependency and the sync now refuses to run without it, so
-      # a plain `npm ci` is required — `--omit=dev` would fail the next step.
+      # sharp is a devDependency and the sync refuses to run without it, so a
+      # plain `npm ci` is required — `--omit=dev` would fail the next step.
       - name: Install dependencies
         run: npm ci
 
-      - name: What is ready to publish
+      - name: Sync from Notion
+        id: sync
+        # A page can be rejected while others convert fine. Keep going so the
+        # good ones still reach a pull request, then fail the job at the end.
+        continue-on-error: true
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
-        run: node notion-sync.mjs --list
-
-      - name: Dry run
-        id: dry
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
-        # Capture output so it can be surfaced in the run summary, but keep the
-        # script's exit code: a rejected page must turn the run red rather than
-        # scroll past in a log nobody opens.
         run: |
           set -o pipefail
-          node notion-sync.mjs --dry-run 2>&1 | tee dry-run.log
+          node notion-sync.mjs --report "$REPORT" 2>&1 | tee sync.log
+
+      - name: Check the sync produced a report
+        # No report means the sync died before reaching the database — a bad
+        # token, a network failure, a crash. Distinguishing that from "nothing
+        # was ready to publish" is the whole point of writing the file.
+        run: |
+          if [ ! -f "$REPORT" ]; then
+            echo "::error::Sinkronizacija nije završila — nema izvještaja. Provjeri log iznad."
+            exit 1
+          fi
+
+      - name: Stage what changed
+        id: changes
+        run: |
+          # Only these two paths are ever machine-written. Scoping the commit
+          # keeps an unrelated stray file out of a post's pull request.
+          git add -A content/posts public/images/posts
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Nothing changed — Notion matches the repository."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --cached --stat
+          fi
+
+      - name: Build the pull request text
+        if: steps.changes.outputs.changed == 'true'
+        run: node .github/scripts/pr-body.mjs "$REPORT" "$BODY" "$TITLE_FILE"
+
+      - name: Commit and push
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "knjigoteka-sync[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # -B keeps the staged changes and moves onto the sync branch, so the
+          # commit sits on top of the branch this run was triggered from.
+          git checkout -B "$SYNC_BRANCH"
+          git commit -F "$TITLE_FILE"
+
+          # The sync is deterministic: same Notion state, same base, same files.
+          # Re-running every 20 minutes against an unmerged pull request would
+          # otherwise force-push an identical tree under a new commit hash and
+          # bury the reviewer in "force-pushed" notifications.
+          #
+          # Fetched into an explicit remote-tracking ref rather than read back
+          # out of FETCH_HEAD: the checkout above already wrote FETCH_HEAD, so
+          # on the first ever run — when the branch does not exist yet and the
+          # fetch fails — FETCH_HEAD would still resolve, to the wrong commit.
+          if git fetch --depth=1 origin \
+               "refs/heads/$SYNC_BRANCH:refs/remotes/origin/$SYNC_BRANCH" 2>/dev/null &&
+             [ "$(git rev-parse HEAD^{tree})" = \
+               "$(git rev-parse "origin/$SYNC_BRANCH^{tree}")" ]; then
+            echo "Identical to the open pull request — not pushing."
+          else
+            git push --force origin "$SYNC_BRANCH"
+          fi
+
+      - name: Open or update the pull request
+        if: steps.changes.outputs.changed == 'true'
+        id: openpr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BASE: ${{ github.ref_name }}
+        run: |
+          TITLE="$(cat "$TITLE_FILE")"
+          NUMBER="$(gh pr list --head "$SYNC_BRANCH" --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$NUMBER" ]; then
+            # A run that gathers a second post has to restate the whole PR:
+            # the body describes every post on the branch, not just the new one.
+            gh pr edit "$NUMBER" --title "$TITLE" --body-file "$BODY"
+          else
+            gh pr create --base "$BASE" --head "$SYNC_BRANCH" --title "$TITLE" --body-file "$BODY"
+            NUMBER="$(gh pr list --head "$SYNC_BRANCH" --state open --json number --jq '.[0].number // empty')"
+          fi
+          echo "number=$NUMBER" >> "$GITHUB_OUTPUT"
+          echo "url=$(gh pr view "$NUMBER" --json url --jq .url)" >> "$GITHUB_OUTPUT"
 
       - name: Summary
-        # Runs even when the dry run failed — a failed run is exactly when
-        # someone needs to read what happened without digging through logs.
+        # Runs even when the sync failed — a failed run is exactly when someone
+        # needs to read what happened without digging through logs.
         if: always()
         run: |
           {
-            echo '## Notion → MDX dry run'
+            echo '## Notion → MDX'
             echo
-            echo 'Nothing was written to the repository or back to Notion.'
+            if [ "${{ steps.changes.outputs.changed }}" = "true" ]; then
+              echo "Pull request: ${{ steps.openpr.outputs.url }}"
+            else
+              echo 'Ništa novo — Notion i repozitorij su usklađeni.'
+            fi
             echo
             echo '```'
-            cat dry-run.log 2>/dev/null || echo '(no output — the dry run did not start)'
+            cat sync.log 2>/dev/null || echo '(no output — the sync did not start)'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail if any page was rejected
+        # Last, so a rejected page turns the run red *after* the pages that did
+        # convert have reached a pull request. Silence is the failure mode this
+        # whole pipeline is built to avoid; step 5 adds the Notion comment that
+        # tells the writer directly.
+        if: steps.sync.outcome == 'failure'
+        run: |
+          echo "::error::Barem jedna stranica nije objavljena — pogledaj sažetak iznad."
+          exit 1

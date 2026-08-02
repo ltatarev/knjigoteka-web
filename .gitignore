@@ -3,7 +3,10 @@ node_modules
 .DS_Store
 
 # notion sync (workflow scratch output)
-dry-run.log
+sync.log
+sync-report.json
+pr-body.md
+pr-title.txt
 
 # next
 .next

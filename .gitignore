@@ -2,6 +2,9 @@
 node_modules
 .DS_Store
 
+# notion sync (workflow scratch output)
+dry-run.log
+
 # next
 .next
 out/

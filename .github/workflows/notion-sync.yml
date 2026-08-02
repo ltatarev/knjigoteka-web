@@ -1,0 +1,89 @@
+name: Notion sync (dry run)
+
+# Step 2 of the Notion → MDX pipeline: authenticate, query, and report what a
+# real sync *would* write. This workflow never commits and never writes back to
+# Notion — `--dry-run` is passed unconditionally below.
+
+on:
+  schedule:
+    # Every 20 minutes. GitHub queues scheduled runs on a best-effort basis and
+    # skews them under load, so treat 20 minutes as a floor, not a guarantee.
+    #
+    # NOTE: schedule only ever fires from the default branch, and
+    # workflow_dispatch requires this file to exist on the default branch before
+    # it can be dispatched at all. Neither trigger does anything while this
+    # workflow lives only on refactor/nextjs.
+    - cron: "*/20 * * * *"
+  workflow_dispatch:
+
+  # TEMPORARY — the only trigger that works from a non-default branch, so the
+  # pipeline can be exercised in real CI before the Next.js migration merges.
+  # Delete this block once the workflow is on main.
+  push:
+    branches: [refactor/nextjs]
+
+# Read-only until step 3 introduces a branch and a PR.
+permissions:
+  contents: read
+
+# Two writers flipping status at the same time must not produce two competing
+# syncs. Serialising here is what later lets one run gather both posts into a
+# single PR. In-progress runs are never cancelled: once this workflow starts
+# committing, a cancelled run could leave a branch half-written.
+concurrency:
+  group: notion-sync
+  cancel-in-progress: false
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        # The sync reads content/posts to map notionId → existing slug, which is
+        # what freezes a published post's URL across a retitle. Without the
+        # checkout every post would look new and the dry run would lie.
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      # sharp is a devDependency and the sync now refuses to run without it, so
+      # a plain `npm ci` is required — `--omit=dev` would fail the next step.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: What is ready to publish
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        run: node notion-sync.mjs --list
+
+      - name: Dry run
+        id: dry
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        # Capture output so it can be surfaced in the run summary, but keep the
+        # script's exit code: a rejected page must turn the run red rather than
+        # scroll past in a log nobody opens.
+        run: |
+          set -o pipefail
+          node notion-sync.mjs --dry-run 2>&1 | tee dry-run.log
+
+      - name: Summary
+        # Runs even when the dry run failed — a failed run is exactly when
+        # someone needs to read what happened without digging through logs.
+        if: always()
+        run: |
+          {
+            echo '## Notion → MDX dry run'
+            echo
+            echo 'Nothing was written to the repository or back to Notion.'
+            echo
+            echo '```'
+            cat dry-run.log 2>/dev/null || echo '(no output — the dry run did not start)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

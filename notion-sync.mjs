@@ -695,8 +695,9 @@ async function main() {
   );
 
   // A writer who flips a status and sees nothing happen stops using the system,
-  // so a rejected page must never look like a clean run. Step 5 turns this list
-  // into a Notion comment; until then a non-zero exit is what makes CI notice.
+  // so a rejected page must never look like a clean run. Under --notify each
+  // failure becomes a comment on the writer's own page; the non-zero exit is
+  // what makes CI notice and tell the maintainer.
   if (failures.length) {
     console.error(`\n${failures.length} page(s) rejected:`);
     for (const f of failures) console.error(`  ✗ ${f.title ?? 'Bez naslova'} — ${f.message}`);

@@ -1,27 +1,20 @@
 name: Notion sync
 
-# Step 3 of the Notion → MDX pipeline: convert every page marked "Za objavu",
-# commit the result to a branch, and open one pull request per run. Merging that
-# PR is what publishes. Nothing is written back to Notion yet — the status flip
-# and the live URL land in step 4.
+# Convert every page marked "Za objavu", commit the result to a branch, and open
+# one pull request per run. Merging that PR is what publishes — the status flip
+# and the live URL are then written back by notion-publish.yml.
 
 on:
   schedule:
     # Every 20 minutes. GitHub queues scheduled runs on a best-effort basis and
     # skews them under load, so treat 20 minutes as a floor, not a guarantee.
     #
-    # NOTE: schedule only ever fires from the default branch, and
-    # workflow_dispatch requires this file to exist on the default branch before
-    # it can be dispatched at all. Neither trigger does anything while this
-    # workflow lives only on refactor/nextjs.
+    # NOTE: both triggers below only work from the default branch — a schedule
+    # never fires from a topic branch, and this file has to exist on the default
+    # branch before it can be dispatched at all. Editing the workflow on a
+    # branch changes nothing until that branch is merged.
     - cron: "*/20 * * * *"
   workflow_dispatch:
-
-  # TEMPORARY — the only trigger that works from a non-default branch, so the
-  # pipeline can be exercised in real CI before the Next.js migration merges.
-  # Delete this block once the workflow is on main.
-  push:
-    branches: [refactor/nextjs]
 
 permissions:
   contents: write
@@ -216,8 +209,8 @@ jobs:
       - name: Fail if any page was rejected
         # Last, so a rejected page turns the run red *after* the pages that did
         # convert have reached a pull request. Silence is the failure mode this
-        # whole pipeline is built to avoid; step 5 adds the Notion comment that
-        # tells the writer directly.
+        # whole pipeline is built to avoid — --notify has already told the
+        # writer on their own page by the time this runs.
         if: steps.sync.outcome == 'failure'
         run: |
           echo "::error::Barem jedna stranica nije objavljena — pogledaj sažetak iznad."

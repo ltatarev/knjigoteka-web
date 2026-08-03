@@ -1,8 +1,8 @@
 name: Notion write-back
 
-# Step 4 of the Notion → MDX pipeline: once a sync pull request is merged, tell
-# Notion. Status becomes "Objavljeno" and the live URL lands in "Objavljeno na",
-# which is the only signal a writer gets that their post actually made it.
+# Once a sync pull request is merged, tell Notion. Status becomes "Objavljeno"
+# and the live URL lands in "Objavljeno na", which is the only signal a writer
+# gets that their post actually made it.
 #
 # This is the only place in the project that writes to Notion, and it touches
 # exactly two properties. The page body is never written back — the sync is

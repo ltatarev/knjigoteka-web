@@ -32,6 +32,8 @@ styles/               theme tokens and global styles (vanilla-extract)
 lib/                  content readers and typed data
 content/              posts and structural copy — see content/README.md
 public/images/        post covers and site imagery
+notion-sync.mjs       Notion → MDX converter — see "Publishing from Notion"
+docs/                 how the Notion side is set up
 ```
 
 ## Content
@@ -49,9 +51,70 @@ public-root paths (`/images/posts/rebecca-cover.jpg`).
 
 ### Adding a post
 
-Drop a new `.mdx` file into `content/posts/`, add the cover to
+Normally you don't — posts are written in Notion and synced (see below). To add
+one by hand, drop a new `.mdx` file into `content/posts/`, add the cover to
 `public/images/posts/`, and run `npm run verify:posts`. It appears at the top of
 `/news/` automatically.
+
+## Publishing from Notion
+
+Writers work in the **Objave** Notion database and never touch this repository.
+Flipping a page's `Status` to **`Za objavu`** is the entire publishing action;
+everything after it is automated.
+
+```
+Notion "Za objavu"  →  notion-sync.yml  →  pull request  →  merge
+                                                             ↓
+                    Notion "Objavljeno" ←  notion-publish.yml
+                              +  live URL in "Objavljeno na"
+```
+
+| piece | what it is |
+| --- | --- |
+| `notion-sync.mjs` | the converter — Notion blocks → MDX, covers and inline images → 1600px WebP |
+| `.github/workflows/notion-sync.yml` | runs it every 20 minutes, opens one pull request |
+| `.github/workflows/notion-publish.yml` | on merge, writes status and URL back to Notion |
+| `.github/scripts/` | renders the pull request body and the maintainer's issue |
+| `docs/notion-predlozak.md` | what the "Nova objava" Notion template contains |
+
+**Merging the pull request is what publishes.** Nothing reaches the site
+unreviewed, and the sync is one-way — the page body is never written back, so a
+conversion bug can't overwrite a writer's own words.
+
+### Running it locally
+
+```bash
+export NOTION_TOKEN=ntn_xxx          # notion.so/my-integrations
+export NOTION_DATABASE_ID=xxxxxxxx   # from the database URL
+
+node notion-sync.mjs --list          # what's ready to publish
+node notion-sync.mjs --dry-run       # convert and print, write nothing
+node notion-sync.mjs                 # write MDX + images
+```
+
+The integration needs the database shared with it (••• → **Connections**) and
+the **Read comments** capability, without which failures can't be deduplicated
+and so aren't posted at all.
+
+`sharp` is a devDependency and the sync refuses to run without it — CI therefore
+installs with a plain `npm ci`, never `--omit=dev`.
+
+### When something fails
+
+A rejected page never fails silently, because a writer who hears nothing
+concludes the system is broken:
+
+- the **writer** gets a comment on their own Notion page, in Croatian, naming a
+  field they can see — deduplicated, so a page that stays broken is commented on
+  once, not every 20 minutes;
+- the **maintainer** gets a single GitHub issue labelled `notion-sync`, edited in
+  place each run and closed automatically once the sync recovers.
+
+Property names are mapped in one place — `PROP` at the top of `notion-sync.mjs`.
+Rename a Notion column there, not in Notion.
+
+Slugs are frozen on first publish: the sync maps `notionId` → existing filename,
+so retitling a published post in Notion does not move its URL.
 
 ### Listing order
 
@@ -122,6 +185,6 @@ Things that look like mistakes but are deliberate:
   `GatsbyImage` behaved. See `components/framed-image.css.ts`.
 
 `scripts/migrate-contentful.mjs` is kept as a record of how `content/` was
-produced. It is **no longer runnable** — the Contentful space is retired and
-`sharp` is no longer a dependency. `content/README.md` still refers to a
-`keystatic.config.ts` that has since been removed.
+produced. It is **no longer runnable** — the Contentful space is retired.
+`content/README.md` still refers to a `keystatic.config.ts` that has since been
+removed.

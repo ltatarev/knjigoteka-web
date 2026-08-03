@@ -7,6 +7,9 @@ sync.log
 sync-report.json
 pr-body.md
 pr-title.txt
+publish.log
+publish-report.json
+posts.txt
 
 # next
 .next

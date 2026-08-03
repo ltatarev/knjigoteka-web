@@ -10,6 +10,7 @@
  *   node notion-sync.mjs                  # write MDX + images
  *   node notion-sync.mjs --page <id|url>  # one specific page
  *   node notion-sync.mjs --report r.json  # also write a machine-readable run report
+ *   node notion-sync.mjs --publish a.mdx  # mark merged posts published in Notion
  *
  * Setup:
  *   1. notion.so/my-integrations → new internal integration → copy token
@@ -48,10 +49,21 @@ const PROP = {
   status: 'Status',
   slug: 'Slug',
   publishedDate: 'Datum objave',
+  publishedUrl: 'Objavljeno na',
 };
 
 /** Only pages with this status are synced. */
 const STATUS_READY = 'Za objavu';
+
+/** What a page becomes once its post is merged and live. */
+const STATUS_PUBLISHED = 'Objavljeno';
+
+/**
+ * Where a merged post ends up. Must match app/sitemap.ts: trailingSlash is on,
+ * so a URL without the trailing slash 308s to the canonical one, and the link
+ * written into Notion is the one a writer clicks to check their own work.
+ */
+const SITE_URL = (process.env.SITE_URL ?? 'https://knjigoteka.club').replace(/\/+$/, '');
 
 const IMAGE_MAX_WIDTH = 1600;
 const IMAGE_QUALITY = 78;
@@ -84,6 +96,23 @@ const ONE_PAGE = flagValue('--page');
  * that back out of the console output would break the moment a log line moved.
  */
 const REPORT = flagValue('--report');
+
+/**
+ * Write-back mode. Takes the .mdx files a merge put live and marks their Notion
+ * pages published. This is the only code in the project that writes to Notion,
+ * and it touches exactly two properties — never the page body.
+ */
+const PUBLISH = has('--publish');
+const PUBLISH_FILES = argv.filter((a) => a.endsWith('.mdx'));
+
+/**
+ * Wait for each URL to actually resolve before writing it into Notion. The
+ * write-back fires on merge, but the site is a static export that takes a
+ * couple of minutes to deploy — so without this a writer gets told "objavljeno"
+ * and clicks straight through to a 404. Off by default because the post only
+ * goes live from the branch the site deploys from.
+ */
+const VERIFY_LIVE = has('--verify-live');
 
 const warn = (...a) => console.warn('  ⚠ ', ...a);
 
@@ -447,6 +476,11 @@ async function initImages() {
 // ---------------------------------------------------------------------------
 
 async function main() {
+  if (PUBLISH) {
+    if (!TOKEN) die('NOTION_TOKEN is not set.');
+    return publish(PUBLISH_FILES);
+  }
+
   await initImages();
 
   if (!TOKEN) die('NOTION_TOKEN is not set.');
@@ -651,6 +685,132 @@ async function main() {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Write-back
+// ---------------------------------------------------------------------------
+
+/**
+ * Marks merged posts published in Notion: Status → "Objavljeno" and the live
+ * URL into "Objavljeno na".
+ *
+ * This runs after the merge, so the post is already live no matter what
+ * happens here. That asymmetry decides the error handling: a page we cannot
+ * reach must fail the job loudly, because the writer's only signal that
+ * anything worked is the status changing in front of them. A status stuck on
+ * "Za objavu" over a post that is live on the site is precisely the silent
+ * failure that makes people abandon the system.
+ */
+async function publish(files) {
+  if (!files.length) {
+    console.log('\nNo .mdx files given — nothing to publish.\n');
+    await writeReport([], []);
+    return;
+  }
+
+  const published = [];
+  const failures = [];
+
+  for (const file of files) {
+    const slug = path.basename(file, '.mdx');
+    let raw;
+    try {
+      raw = await fs.readFile(file, 'utf8');
+    } catch {
+      // The file was deleted in the same merge that brought it in. Nothing is
+      // live, so there is nothing to announce.
+      warn(`${file}: not on disk — skipped`);
+      continue;
+    }
+
+    const front = raw.match(/^---\n([\s\S]*?)\n---/);
+    const id = front?.[1].match(/^notionId:\s*"?([0-9a-f-]{32,36})"?\s*$/m)?.[1];
+    if (!id) {
+      // One of the 38 migrated posts, or a hand-written one. It has no Notion
+      // page behind it and never did.
+      console.log(`${slug}: no notionId — not a Notion post, skipped`);
+      continue;
+    }
+
+    const url = `${SITE_URL}/${slug}/`;
+    console.log(`\n${slug}  →  ${url}`);
+
+    if (VERIFY_LIVE && !(await waitForLive(url))) {
+      failures.push(`${slug} — stranica se nije pojavila na ${url} (objavljivanje nije dovršeno)`);
+      warn(`${slug}: ${url} never came up — not marking published`);
+      continue;
+    }
+
+    let page;
+    try {
+      page = await notion(`/pages/${id}`);
+    } catch (e) {
+      failures.push(`${slug} — Notion stranica nije dostupna (${id})`);
+      warn(`${slug}: could not read page ${id} — ${e.message}`);
+      continue;
+    }
+
+    // A writer who moved the page back to "Skica" while the pull request sat in
+    // review is saying they want to keep working on it. The post is live either
+    // way, so record the URL — but leave their status alone rather than
+    // overruling a deliberate choice.
+    const current = readProp(page, PROP.status);
+    const properties = { [PROP.publishedUrl]: { url } };
+    if (current === STATUS_READY) {
+      properties[PROP.status] = { status: { name: STATUS_PUBLISHED } };
+    } else {
+      console.log(`  status is "${current}", not "${STATUS_READY}" — leaving it alone`);
+    }
+
+    try {
+      await notion(`/pages/${id}`, { method: 'PATCH', body: { properties } });
+    } catch (e) {
+      failures.push(`${slug} — objava je na stranici, ali status u Notionu nije ažuriran`);
+      warn(`${slug}: write-back failed — ${e.message}`);
+      continue;
+    }
+
+    published.push({ title: readProp(page, PROP.title) ?? slug, slug, notionId: id, url });
+    console.log(`  ✓ ${properties[PROP.status] ? `${STATUS_PUBLISHED}, ` : ''}link zapisan`);
+  }
+
+  await writeReport(published, failures);
+
+  console.log(`\n${published.length} page(s) marked published.`);
+  if (failures.length) {
+    console.error(`\n${failures.length} page(s) not updated:`);
+    for (const f of failures) console.error(`  ✗ ${f}`);
+    console.error('');
+    process.exitCode = 1;
+  }
+}
+
+/** How long to give the deploy before calling a post lost. */
+const LIVE_TIMEOUT_MS = 6 * 60 * 1000;
+const LIVE_POLL_MS = 15 * 1000;
+
+/**
+ * Polls a URL until it resolves. The Pages deploy runs on the same merge that
+ * triggers the write-back, so on the first attempt the post reliably is not
+ * there yet — a single request would fail every time.
+ */
+async function waitForLive(url) {
+  const deadline = Date.now() + LIVE_TIMEOUT_MS;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const res = await fetch(url, { method: 'HEAD', redirect: 'follow' });
+      if (res.ok) {
+        console.log(`  live after ${attempt} check(s)`);
+        return true;
+      }
+    } catch {
+      // DNS or connection error — indistinguishable from "not deployed yet".
+    }
+    if (Date.now() + LIVE_POLL_MS >= deadline) return false;
+    if (attempt === 1) console.log(`  waiting for the deploy…`);
+    await sleep(LIVE_POLL_MS);
+  }
+}
 
 /**
  * Machine-readable summary of the run, for CI. Written on every path that

@@ -1,0 +1,86 @@
+name: Notion write-back
+
+# Step 4 of the Notion → MDX pipeline: once a sync pull request is merged, tell
+# Notion. Status becomes "Objavljeno" and the live URL lands in "Objavljeno na",
+# which is the only signal a writer gets that their post actually made it.
+#
+# This is the only place in the project that writes to Notion, and it touches
+# exactly two properties. The page body is never written back — the sync is
+# one-way by design, and a round trip would let a conversion bug overwrite a
+# writer's own words.
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+
+# Shared with the sync workflow so the two never talk to Notion at once: a sync
+# querying "Za objavu" while a page is mid-flip would read a stale status.
+concurrency:
+  group: notion-sync
+  cancel-in-progress: false
+
+jobs:
+  write-back:
+    # Closed-without-merging must do nothing, and only the sync's own branch may
+    # trigger a Notion write — otherwise any pull request in the repository
+    # could reach the workspace.
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.ref == 'notion-sync'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the branch that was merged into
+        # Not the merge ref: what matters is the content that is now live on the
+        # base branch, which is what the deploy will publish.
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      # No npm ci, and so no npm cache either: the write-back path uses nothing
+      # but Node builtins — no sharp, no MDX toolchain. Keeping the install out
+      # means a post's "objavljeno" signal cannot be lost to a dependency
+      # failing to resolve.
+
+      - name: Collect the posts this merge published
+        id: posts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr view "$NUMBER" --json files --jq '.files[].path' \
+            | grep -E '^content/posts/.*\.mdx$' > posts.txt || true
+          echo "count=$(wc -l < posts.txt | tr -d ' ')" >> "$GITHUB_OUTPUT"
+          cat posts.txt
+
+      - name: Mark them published in Notion
+        if: steps.posts.outputs.count != '0'
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          # Only the default branch deploys, so only there is there a live URL
+          # to wait for. Merging into a working branch still records the link —
+          # it just cannot verify it yet.
+          VERIFY: ${{ github.event.pull_request.base.ref == github.event.repository.default_branch && '--verify-live' || '' }}
+        run: |
+          set -o pipefail
+          # shellcheck disable=SC2046  # deliberate: one argument per file
+          node notion-sync.mjs --publish $VERIFY --report publish-report.json \
+            $(cat posts.txt) 2>&1 | tee publish.log
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo '## Notion write-back'
+            echo
+            echo '```'
+            cat publish.log 2>/dev/null || echo '(nothing published)'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

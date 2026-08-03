@@ -10,6 +10,7 @@ pr-title.txt
 publish.log
 publish-report.json
 posts.txt
+issue.md
 
 # next
 .next

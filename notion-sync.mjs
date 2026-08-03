@@ -11,6 +11,7 @@
  *   node notion-sync.mjs --page <id|url>  # one specific page
  *   node notion-sync.mjs --report r.json  # also write a machine-readable run report
  *   node notion-sync.mjs --publish a.mdx  # mark merged posts published in Notion
+ *   node notion-sync.mjs --notify         # comment on failed pages in Notion
  *
  * Setup:
  *   1. notion.so/my-integrations → new internal integration → copy token
@@ -113,6 +114,12 @@ const PUBLISH_FILES = argv.filter((a) => a.endsWith('.mdx'));
  * goes live from the branch the site deploys from.
  */
 const VERIFY_LIVE = has('--verify-live');
+
+/**
+ * Post a comment onto the Notion page of anything that failed. Off by default
+ * so a local run can never write into the workspace; CI passes it.
+ */
+const NOTIFY = has('--notify');
 
 const warn = (...a) => console.warn('  ⚠ ', ...a);
 
@@ -533,7 +540,11 @@ async function main() {
   for (const page of pages) {
     const title = readProp(page, PROP.title);
     if (!title) {
-      failures.push(`${page.url ?? page.id} — nema naslova (Naslov je prazan)`);
+      failures.push({
+        pageId: page.id,
+        title: null,
+        message: 'Stranica nema naslov. Upiši naslov u polje „Naslov".',
+      });
       warn(`page ${page.id} has no title — REJECTED`);
       continue;
     }
@@ -599,7 +610,12 @@ async function main() {
     } else {
       // parsePost() throws without a cover, so this is fatal rather than a
       // warning — better to say so here than to fail the build later.
-      failures.push(`${title} — nema naslovne slike (dodaj naslovnicu stranice ili ispuni "Naslovna slika")`);
+      failures.push({
+        pageId: page.id,
+        title,
+        message:
+          'Nedostaje naslovna slika. Dodaj sliku na vrh stranice ili je stavi u polje „Naslovna slika".',
+      });
       warn(`${slug}: no cover image — REJECTED (the site requires one)`);
       continue;
     }
@@ -629,7 +645,11 @@ async function main() {
     // either another writer's post or one of the 38 migrated posts, and
     // overwriting either would destroy content the repo owns.
     if (!frozenSlug && existsSync(target)) {
-      failures.push(`${title} — "${slug}.mdx" već postoji i pripada drugoj objavi (upiši drugi Slug)`);
+      failures.push({
+        pageId: page.id,
+        title,
+        message: `Već postoji objava na adresi „${slug}". Upiši drukčiju vrijednost u polje „Slug".`,
+      });
       warn(`${slug}.mdx exists and belongs to a different post — REJECTED`);
       continue;
     }
@@ -651,7 +671,12 @@ async function main() {
     if (!imagesOk) {
       // Don't leave half a post's images behind for the next run to commit.
       for (const f of written) await fs.rm(f, { force: true });
-      failures.push(`${title} — slike se nisu preuzele, objava nije zapisana (pokušaj ponovno)`);
+      failures.push({
+        pageId: page.id,
+        title,
+        message:
+          'Slike se nisu uspjele preuzeti, pa objava još nije spremljena. Pokušat ćemo ponovno sami; ako se ponovi, umetni slike u stranicu iznova.',
+      });
       warn(`${slug}: image download failed — REJECTED, nothing written`);
       continue;
     }
@@ -674,8 +699,9 @@ async function main() {
   // into a Notion comment; until then a non-zero exit is what makes CI notice.
   if (failures.length) {
     console.error(`\n${failures.length} page(s) rejected:`);
-    for (const f of failures) console.error(`  ✗ ${f}`);
+    for (const f of failures) console.error(`  ✗ ${f.title ?? 'Bez naslova'} — ${f.message}`);
     console.error('');
+    if (NOTIFY) await commentOnFailures(failures);
     process.exitCode = 1;
     return;
   }
@@ -685,6 +711,75 @@ async function main() {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Failure reporting
+// ---------------------------------------------------------------------------
+
+/**
+ * Tells the writer, on their own page, that their post did not go through.
+ *
+ * A volunteer who flips a status and then hears nothing concludes the system is
+ * broken and goes back to email. The pull request and the run log are invisible
+ * to them — the Notion page is the only place they will ever look, so that is
+ * where the explanation has to appear, in language that never mentions a repo,
+ * a branch or a build.
+ */
+async function commentOnFailures(failures) {
+  const targets = failures.filter((f) => f.pageId);
+  if (!targets.length) return;
+
+  for (const f of targets) {
+    const text = composeComment(f);
+
+    // Nothing resolves a failed page except the writer fixing it, so the sync
+    // will hit the same failure every 20 minutes until they do. Without this
+    // check that is 72 identical comments a day, which is not "loud" — it is
+    // noise, and it trains people to ignore the one channel we have.
+    let existing;
+    try {
+      const res = await notion(`/comments?block_id=${f.pageId}&page_size=100`);
+      existing = res.results ?? [];
+    } catch (e) {
+      // Reading comments is a separate integration capability from posting
+      // them. Without it we cannot tell a first report from the hundredth, and
+      // guessing wrong floods the page — so say why and leave it to the issue
+      // the maintainer gets.
+      warn(
+        `cannot read comments on ${f.title ?? f.pageId} — enable "Read comments" ` +
+          `on the integration. Skipping the comment to avoid repeating it every run.`
+      );
+      warn(e.message.split('\n')[0]);
+      continue;
+    }
+
+    if (existing.some((c) => plain(c.rich_text).trim() === text.trim())) {
+      console.log(`  (already commented on "${f.title ?? f.pageId}")`);
+      continue;
+    }
+
+    try {
+      await notion('/comments', {
+        method: 'POST',
+        body: { parent: { page_id: f.pageId }, rich_text: [{ text: { content: text } }] },
+      });
+      console.log(`  💬 commented on "${f.title ?? f.pageId}"`);
+    } catch (e) {
+      warn(`could not comment on ${f.title ?? f.pageId} — ${e.message.split('\n')[0]}`);
+    }
+  }
+}
+
+function composeComment(f) {
+  const lines = ['Objava nije prošla.', '', f.message];
+  if (!PUBLISH) {
+    lines.push(
+      '',
+      `Kad to popraviš, ostavi status na „${STATUS_READY}" — objava se sama pokupi u sljedećih 20-ak minuta.`
+    );
+  }
+  return lines.join('\n');
+}
 
 // ---------------------------------------------------------------------------
 // Write-back
@@ -736,7 +831,11 @@ async function publish(files) {
     console.log(`\n${slug}  →  ${url}`);
 
     if (VERIFY_LIVE && !(await waitForLive(url))) {
-      failures.push(`${slug} — stranica se nije pojavila na ${url} (objavljivanje nije dovršeno)`);
+      failures.push({
+        pageId: id,
+        title: slug,
+        message: `Objava je spremljena, ali se još nije pojavila na ${url}. Javi administratoru.`,
+      });
       warn(`${slug}: ${url} never came up — not marking published`);
       continue;
     }
@@ -745,7 +844,13 @@ async function publish(files) {
     try {
       page = await notion(`/pages/${id}`);
     } catch (e) {
-      failures.push(`${slug} — Notion stranica nije dostupna (${id})`);
+      // No pageId: we could not read the page, so we certainly cannot comment
+      // on it. This one can only reach the maintainer.
+      failures.push({
+        pageId: null,
+        title: slug,
+        message: `Ne mogu otvoriti Notion stranicu (${id}) — provjeri je li integracija dodana na nju.`,
+      });
       warn(`${slug}: could not read page ${id} — ${e.message}`);
       continue;
     }
@@ -765,7 +870,11 @@ async function publish(files) {
     try {
       await notion(`/pages/${id}`, { method: 'PATCH', body: { properties } });
     } catch (e) {
-      failures.push(`${slug} — objava je na stranici, ali status u Notionu nije ažuriran`);
+      failures.push({
+        pageId: id,
+        title: slug,
+        message: 'Objava je na stranici, ali status ovdje nije ažuriran. Javi administratoru.',
+      });
       warn(`${slug}: write-back failed — ${e.message}`);
       continue;
     }
@@ -779,8 +888,9 @@ async function publish(files) {
   console.log(`\n${published.length} page(s) marked published.`);
   if (failures.length) {
     console.error(`\n${failures.length} page(s) not updated:`);
-    for (const f of failures) console.error(`  ✗ ${f}`);
+    for (const f of failures) console.error(`  ✗ ${f.title ?? 'Bez naslova'} — ${f.message}`);
     console.error('');
+    if (NOTIFY) await commentOnFailures(failures);
     process.exitCode = 1;
   }
 }

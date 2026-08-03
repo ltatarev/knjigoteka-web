@@ -86,7 +86,7 @@ if (failures.length) {
   lines.push('Ove stranice nisu prebačene. Popravi ih u Notionu i sinkronizacija');
   lines.push('će ih pokupiti sama u sljedećem krugu — status ostavi na `Za objavu`.');
   lines.push('');
-  for (const f of failures) lines.push(`- ${f}`);
+  for (const f of failures) lines.push(`- **${f.title ?? 'Bez naslova'}** — ${f.message}`);
   lines.push('');
 }
 

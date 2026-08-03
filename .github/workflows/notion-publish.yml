@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 # Shared with the sync workflow so the two never talk to Notion at once: a sync
 # querying "Za objavu" while a page is mid-flip would read a stale status.
@@ -61,6 +62,7 @@ jobs:
           cat posts.txt
 
       - name: Mark them published in Notion
+        id: publish
         if: steps.posts.outputs.count != '0'
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
@@ -71,8 +73,27 @@ jobs:
         run: |
           set -o pipefail
           # shellcheck disable=SC2046  # deliberate: one argument per file
-          node notion-sync.mjs --publish $VERIFY --report publish-report.json \
+          node notion-sync.mjs --publish $VERIFY --notify --report publish-report.json \
             $(cat posts.txt) 2>&1 | tee publish.log
+
+      - name: Tell the maintainer
+        # A write-back failure is worse than a sync failure: the post is already
+        # live, so nothing retries it. Without this it fails completely silently.
+        if: always() && steps.publish.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create notion-sync --color B60205 \
+            --description "Notion → MDX sinkronizacija" 2>/dev/null || true
+          node .github/scripts/issue-body.mjs publish-report.json "$RUN_URL" > issue.md
+          NUMBER="$(gh issue list --label notion-sync --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$NUMBER" ]; then
+            gh issue edit "$NUMBER" --body-file issue.md
+          else
+            gh issue create --title "Objava nije upisana natrag u Notion" \
+              --label notion-sync --body-file issue.md
+          fi
 
       - name: Summary
         if: always()

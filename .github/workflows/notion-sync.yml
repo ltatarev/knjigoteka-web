@@ -26,6 +26,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 # Two writers flipping status at the same time must not produce two competing
 # syncs racing to force-push the same branch. In-progress runs are never
@@ -74,7 +75,7 @@ jobs:
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
         run: |
           set -o pipefail
-          node notion-sync.mjs --report "$REPORT" 2>&1 | tee sync.log
+          node notion-sync.mjs --report "$REPORT" --notify 2>&1 | tee sync.log
 
       - name: Check the sync produced a report
         # No report means the sync died before reaching the database — a bad
@@ -171,6 +172,38 @@ jobs:
             cat sync.log 2>/dev/null || echo '(no output — the sync did not start)'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Tell the maintainer
+        # The writer hears about their own page in Notion. This is the other
+        # half: the problems only the maintainer can fix, and the ones where
+        # the sync never got far enough to comment on anything.
+        #
+        # One issue, edited in place and closed when the sync recovers — a new
+        # issue every 20 minutes would be filtered to a folder within a day.
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          OUTCOME: ${{ steps.sync.outcome }}
+        run: |
+          gh label create notion-sync --color B60205 \
+            --description "Notion → MDX sinkronizacija" 2>/dev/null || true
+          NUMBER="$(gh issue list --label notion-sync --state open --json number --jq '.[0].number // empty')"
+
+          if [ "$OUTCOME" = "success" ]; then
+            if [ -n "$NUMBER" ]; then
+              gh issue close "$NUMBER" --comment "Sinkronizacija ponovno prolazi."
+            fi
+            exit 0
+          fi
+
+          node .github/scripts/issue-body.mjs "$REPORT" "$RUN_URL" > issue.md
+          if [ -n "$NUMBER" ]; then
+            gh issue edit "$NUMBER" --body-file issue.md
+          else
+            gh issue create --title "Sinkronizacija iz Notiona ne prolazi" \
+              --label notion-sync --body-file issue.md
+          fi
 
       - name: Fail if any page was rejected
         # Last, so a rejected page turns the run red *after* the pages that did

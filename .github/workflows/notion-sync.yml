@@ -186,6 +186,14 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           OUTCOME: ${{ steps.sync.outcome }}
         run: |
+          # Issues can be turned off on a repository. Notification plumbing must
+          # never be the thing that fails a sync, so probe first and downgrade
+          # to a warning — a red run still emails the maintainer either way.
+          if ! gh issue list --state open --limit 1 >/dev/null 2>&1; then
+            echo "::warning::Issues su isključeni na repozitoriju, pa nema trajnog zapisa o kvaru. Uključi ih u Settings → General → Features."
+            exit 0
+          fi
+
           gh label create notion-sync --color B60205 \
             --description "Notion → MDX sinkronizacija" 2>/dev/null || true
           NUMBER="$(gh issue list --label notion-sync --state open --json number --jq '.[0].number // empty')"

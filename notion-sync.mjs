@@ -733,10 +733,12 @@ async function commentOnFailures(failures) {
   for (const f of targets) {
     const text = composeComment(f);
 
-    // Nothing resolves a failed page except the writer fixing it, so the sync
-    // will hit the same failure every 20 minutes until they do. Without this
-    // check that is 72 identical comments a day, which is not "loud" — it is
-    // noise, and it trains people to ignore the one channel we have.
+    // Nothing resolves a failed page except the writer fixing it, so every run
+    // hits the same failure until they do. Without this check a page left
+    // broken over a holiday collects a wall of identical comments — and a
+    // manual dispatch, which a writer reaches for precisely when something is
+    // wrong, can fire several in a minute. That is not "loud", it is noise,
+    // and it trains people to ignore the one channel we have.
     let existing;
     try {
       const res = await notion(`/comments?block_id=${f.pageId}&page_size=100`);

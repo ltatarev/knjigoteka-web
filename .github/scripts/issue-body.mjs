@@ -7,7 +7,7 @@
  * The writer gets a comment on their own Notion page; this is the other half of
  * "failure must be loud" — the half aimed at the one person who can fix a
  * problem the writer cannot. It is deliberately a single issue kept up to date
- * rather than one per run: a new issue every 20 minutes is a mute button.
+ * rather than one per run: a new issue for every retry is a mute button.
  */
 
 import fs from 'node:fs/promises';

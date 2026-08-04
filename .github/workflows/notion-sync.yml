@@ -6,14 +6,20 @@ name: Notion sync
 
 on:
   schedule:
-    # Every 20 minutes. GitHub queues scheduled runs on a best-effort basis and
-    # skews them under load, so treat 20 minutes as a floor, not a guarantee.
+    # Once a day, overnight. GitHub cron is always UTC, so this is 01:00 in
+    # Croatia in winter and 02:00 in summer — close enough to midnight for a
+    # blog, and nobody is waiting on it at that hour.
     #
-    # NOTE: both triggers below only work from the default branch — a schedule
-    # never fires from a topic branch, and this file has to exist on the default
+    # Scheduled runs are queued on a best-effort basis and skew under load, so
+    # the time is approximate. A writer who does not want to wait for it uses
+    # workflow_dispatch below: Actions → Notion sync → Run workflow, which
+    # publishes within a few minutes.
+    #
+    # NOTE: both triggers only work from the default branch — a schedule never
+    # fires from a topic branch, and this file has to exist on the default
     # branch before it can be dispatched at all. Editing the workflow on a
     # branch changes nothing until that branch is merged.
-    - cron: "*/20 * * * *"
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 permissions:
@@ -31,7 +37,8 @@ concurrency:
 env:
   # One long-lived branch, force-pushed each run and rebuilt from scratch from
   # whatever Notion currently says. A per-run branch would open a fresh pull
-  # request every 20 minutes for as long as the first one sat unmerged.
+  # request every run for as long as the first one sat unmerged — a manual
+  # dispatch while one is already open is exactly when that would happen.
   SYNC_BRANCH: notion-sync
   REPORT: sync-report.json
   BODY: pr-body.md
@@ -110,9 +117,9 @@ jobs:
           git commit -F "$TITLE_FILE"
 
           # The sync is deterministic: same Notion state, same base, same files.
-          # Re-running every 20 minutes against an unmerged pull request would
-          # otherwise force-push an identical tree under a new commit hash and
-          # bury the reviewer in "force-pushed" notifications.
+          # Re-running against an unmerged pull request would otherwise
+          # force-push an identical tree under a new commit hash and bury the
+          # reviewer in "force-pushed" notifications.
           #
           # Fetched into an explicit remote-tracking ref rather than read back
           # out of FETCH_HEAD: the checkout above already wrote FETCH_HEAD, so
@@ -172,7 +179,7 @@ jobs:
         # the sync never got far enough to comment on anything.
         #
         # One issue, edited in place and closed when the sync recovers — a new
-        # issue every 20 minutes would be filtered to a folder within a day.
+        # issue per run would be filtered to a folder within a week.
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

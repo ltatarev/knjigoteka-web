@@ -72,7 +72,7 @@ Notion "Za objavu"  →  notion-sync.yml  →  pull request  →  merge
 | piece | what it is |
 | --- | --- |
 | `notion-sync.mjs` | the converter — Notion blocks → MDX, covers and inline images → 1600px WebP |
-| `.github/workflows/notion-sync.yml` | runs it every 20 minutes, opens one pull request |
+| `.github/workflows/notion-sync.yml` | runs it once a night, opens one pull request |
 | `.github/workflows/notion-publish.yml` | on merge, writes status and URL back to Notion |
 | `.github/scripts/` | renders the pull request body and the maintainer's issue |
 | `docs/notion-predlozak.md` | what the "Nova objava" Notion template contains |
@@ -80,6 +80,16 @@ Notion "Za objavu"  →  notion-sync.yml  →  pull request  →  merge
 **Merging the pull request is what publishes.** Nothing reaches the site
 unreviewed, and the sync is one-way — the page body is never written back, so a
 conversion bug can't overwrite a writer's own words.
+
+### When it runs
+
+The sync runs **once a night** (`0 0 * * *`, which GitHub reads as UTC — 01:00
+local in winter, 02:00 in summer). A page flipped to `Za objavu` in the morning
+is therefore in a pull request the next day, not the same afternoon.
+
+To publish without waiting, run it by hand: **Actions → Notion sync → Run
+workflow**. That is the same job, and it opens or updates the same pull request
+— dispatching while one is already open never creates a second one.
 
 ### Running it locally
 
@@ -106,7 +116,7 @@ concludes the system is broken:
 
 - the **writer** gets a comment on their own Notion page, in Croatian, naming a
   field they can see — deduplicated, so a page that stays broken is commented on
-  once, not every 20 minutes;
+  once, not once per run;
 - the **maintainer** gets a single GitHub issue labelled `notion-sync`, edited in
   place each run and closed automatically once the sync recovers.
 

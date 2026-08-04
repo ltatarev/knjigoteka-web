@@ -68,14 +68,3 @@ export function getPostsInDisplayOrder(): Post[] {
   known.sort((a, b) => rank.get(a.slug)! - rank.get(b.slug)!)
   return [...added, ...known]
 }
-
-/**
- * The three posts shown on the homepage. These are a deliberate editorial pick,
- * not "the 3 newest" — book-club-muza is the oldest post on the site.
- * Changing the homepage selection means editing this list.
- */
-export const HOMEPAGE_SLUGS = [
-  "klub-istrazitelja-ubojstava-cetvrtkom",
-  "plemeniti-gospodin-u-moskvi",
-  "book-club-muza",
-]

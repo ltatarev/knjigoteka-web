@@ -1,17 +1,14 @@
 import * as React from "react"
 import { Container, Box, Kicker, Heading, Text, Link } from "./ui"
 import Feature from "./feature"
-import { getPostsInDisplayOrder, HOMEPAGE_SLUGS } from "@/lib/news-order"
+import { getAllPosts } from "@/lib/posts"
 import type { FeatureListBlock } from "@/lib/types"
 
 export default function FeatureList({ kicker, heading, text }: FeatureListBlock) {
   // Built from the posts collection rather than homepage.json's duplicated
-  // copy, so a post added later can appear here. Which posts, and in what
-  // order, is pinned in lib/news-order.ts.
-  const bySlug = new Map(getPostsInDisplayOrder().map((p) => [p.slug, p]))
-  const posts = HOMEPAGE_SLUGS.map((slug) => bySlug.get(slug)).filter(
-    (p) => p !== undefined
-  )
+  // copy, so a post added later can appear here. Always the 3 most recent
+  // posts (getAllPosts is sorted newest first).
+  const posts = getAllPosts().slice(0, 3)
 
   return (
     <Container width="fullbleed">

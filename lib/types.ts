@@ -121,9 +121,8 @@ export type ProductListBlock = {
 
 /**
  * The homepage "Novosti" block. Its `content` in homepage.json duplicates post
- * data and is ignored — the cards are built from the posts collection, so a new
- * post can appear without editing this file. Which posts appear is pinned in
- * lib/news-order.ts.
+ * data and is ignored — the cards are built from the posts collection, always
+ * the 3 most recent posts, so a new post appears here automatically.
  */
 export type FeatureListBlock = {
   type: "homepageFeatureList"

@@ -13,6 +13,9 @@
  *   node notion-sync.mjs --publish a.mdx  # mark merged posts published in Notion
  *   node notion-sync.mjs --notify         # comment on failed pages in Notion
  *
+ * Status drives everything: "Za objavu" puts a page on the site, "Skriveno"
+ * takes it back off by deleting its post and images. Anything else is ignored.
+ *
  * Setup:
  *   1. notion.so/my-integrations → new internal integration → copy token
  *   2. Open your database → ••• → Connections → add the integration
@@ -58,6 +61,18 @@ const STATUS_READY = 'Za objavu';
 
 /** What a page becomes once its post is merged and live. */
 const STATUS_PUBLISHED = 'Objavljeno';
+
+/**
+ * Takes a post back off the site. The sync deletes its .mdx and the images only
+ * it uses, so merging the run's pull request removes the page, its listing
+ * card and its sitemap entry at once — a static export builds nothing it has no
+ * file for.
+ *
+ * A page that was never published is a no-op rather than a failure: hiding
+ * something that isn't up is a reasonable thing for a writer to do, and there
+ * is nothing to remove.
+ */
+const STATUS_HIDDEN = 'Skriveno';
 
 /**
  * Where a merged post ends up. Must match app/sitemap.ts: trailingSlash is on,
@@ -202,14 +217,50 @@ async function resolveDataSource(databaseId) {
   return sources[0].id;
 }
 
-async function queryReady(dataSourceId) {
+/**
+ * The names actually configured on the Status property, or null if we could not
+ * find out.
+ *
+ * Everything here filters by status *name*, so an option that was renamed or
+ * never created makes a whole half of the pipeline quietly do nothing. And a
+ * filter naming an option Notion doesn't have is not guaranteed to be merely
+ * empty — if the query is rejected outright, publishing stops too. Ask once,
+ * then say plainly what will not work.
+ */
+async function statusOptions(dataSourceId) {
+  try {
+    const ds = await notion(`/data_sources/${dataSourceId}`);
+    const prop = ds.properties?.[PROP.status];
+    // A different property type is somebody's deliberate restructuring, not
+    // something to second-guess from here. Fall back to trying the query.
+    if (prop?.type !== 'status') return null;
+    return new Set((prop.status?.options ?? []).map((o) => o.name));
+  } catch (e) {
+    warn(`could not read the options on "${PROP.status}" — ${e.message.split('\n')[0]}`);
+    return null;
+  }
+}
+
+/**
+ * Every page the sync acts on: the ones waiting to go up, and the ones asking
+ * to come down. One query rather than two, so a status flipped mid-run can't
+ * land between them and be seen by neither pass.
+ */
+async function querySyncable(dataSourceId, { includeHidden = true } = {}) {
+  const wanted = [STATUS_READY, ...(includeHidden ? [STATUS_HIDDEN] : [])].map((name) => ({
+    property: PROP.status,
+    status: { equals: name },
+  }));
+  // `or` around a single condition is not worth relying on — send the bare one.
+  const filter = wanted.length === 1 ? wanted[0] : { or: wanted };
+
   const pages = [];
   let cursor;
   do {
     const res = await notion(`/data_sources/${dataSourceId}/query`, {
       method: 'POST',
       body: {
-        filter: { property: PROP.status, status: { equals: STATUS_READY } },
+        filter,
         start_cursor: cursor,
         page_size: 100,
       },
@@ -499,29 +550,71 @@ async function main() {
     pages = [await notion(`/pages/${extractId(ONE_PAGE)}`)];
   } else {
     const dsId = await resolveDataSource(DATABASE_ID);
-    pages = await queryReady(dsId);
+    const options = await statusOptions(dsId);
+
+    // Missing options are a Notion-side configuration problem, and the repair is
+    // two clicks — but only for someone who has been told. Neither is fatal:
+    // publishing must keep working when removal is misconfigured, and the other
+    // way round.
+    const canHide = !options || options.has(STATUS_HIDDEN);
+    if (options && !canHide) {
+      warn(
+        `"${STATUS_HIDDEN}" is not an option on "${PROP.status}" — nothing can be taken off ` +
+          `the site. Add it in Notion: ${PROP.status} → + Add option.`
+      );
+    }
+    if (options && !options.has(STATUS_READY)) {
+      warn(
+        `"${STATUS_READY}" is not an option on "${PROP.status}" — nothing can be published. ` +
+          `Was it renamed? PROP/STATUS_* at the top of this file must match Notion exactly.`
+      );
+    }
+
+    pages = await querySyncable(dsId, { includeHidden: canHide });
   }
 
+  // --page is a deliberate manual override and converts whatever it is handed,
+  // whatever its status — except "Skriveno", where the status *is* the
+  // instruction, and converting would rewrite the very post it asks to remove.
+  const hiddenPages = pages.filter((p) => readProp(p, PROP.status) === STATUS_HIDDEN);
+  const readyPages = pages.filter((p) => readProp(p, PROP.status) !== STATUS_HIDDEN);
+
   if (!pages.length) {
-    console.log(`\nNothing with Status = "${STATUS_READY}".\n`);
+    console.log(`\nNothing with Status = "${STATUS_READY}" or "${STATUS_HIDDEN}".\n`);
     await writeReport([], []);
     return;
   }
 
   if (LIST) {
-    console.log(`\n${pages.length} ready to publish:\n`);
-    for (const p of pages) {
-      const t = readProp(p, PROP.title);
-      // An untitled page would otherwise print two blank lines and look like
-      // nothing is wrong, which is exactly the silent failure to avoid.
-      if (!t) {
-        console.log(`  ⚠  (bez naslova — bit će odbijena)`);
-        console.log(`    ${p.url ?? p.id}`);
-        continue;
+    if (readyPages.length) {
+      console.log(`\n${readyPages.length} ready to publish:\n`);
+      for (const p of readyPages) {
+        const t = readProp(p, PROP.title);
+        // An untitled page would otherwise print two blank lines and look like
+        // nothing is wrong, which is exactly the silent failure to avoid.
+        if (!t) {
+          console.log(`  ⚠  (bez naslova — bit će odbijena)`);
+          console.log(`    ${p.url ?? p.id}`);
+          continue;
+        }
+        console.log(`  ${t}`);
+        console.log(`    slug: ${slugFor(p)}   edited: ${p.last_edited_time.slice(0, 10)}`);
       }
-      console.log(`  ${t}`);
-      console.log(`    slug: ${slugFor(p)}   edited: ${p.last_edited_time.slice(0, 10)}`);
     }
+
+    if (hiddenPages.length) {
+      // Listed separately and named for what it does to the site. "3 ready to
+      // publish" covering a page that is about to be deleted is the one way
+      // --list could actively mislead.
+      const live = await indexExistingPosts();
+      console.log(`\n${hiddenPages.length} marked "${STATUS_HIDDEN}":\n`);
+      for (const p of hiddenPages) {
+        const slug = live.get(normalizeId(p.id));
+        console.log(`  ${readProp(p, PROP.title) ?? '(bez naslova)'}`);
+        console.log(slug ? `    would remove: ${slug}.mdx` : `    not on the site — nothing to remove`);
+      }
+    }
+
     console.log();
     return;
   }
@@ -536,8 +629,56 @@ async function main() {
   const failures = [];
   /** Pages we did write. Becomes the body of the pull request. */
   const synced = [];
+  /** Posts we took back off the site. Also part of the pull request. */
+  const unpublished = [];
 
-  for (const page of pages) {
+  // Removals first, so a run that both hides one post and publishes another
+  // reads in that order in the log — and so a slug freed by a removal is free
+  // again for a page in the same run that legitimately wants it.
+  for (const page of hiddenPages) {
+    const title = readProp(page, PROP.title) ?? null;
+    const slug = existingByNotionId.get(normalizeId(page.id));
+
+    if (!slug) {
+      // Hidden before it was ever published, or hidden twice. The site has
+      // nothing for this page either way, so there is nothing to do — and
+      // nothing to put in a pull request.
+      console.log(`\n${title ?? page.id}: "${STATUS_HIDDEN}" — not on the site, nothing to remove`);
+      continue;
+    }
+
+    console.log(`\n${title ?? slug}  →  removing ${slug}.mdx`);
+
+    let images;
+    try {
+      images = await removePost(slug, { dryRun: DRY_RUN });
+    } catch (e) {
+      failures.push({
+        pageId: page.id,
+        title,
+        keepStatus: STATUS_HIDDEN,
+        heading: 'Objava nije uklonjena sa stranice.',
+        message: 'Objava se nije uspjela ukloniti. Javi administratoru — ostaje vidljiva do tada.',
+      });
+      warn(`${slug}: removal failed — ${e.message}`);
+      continue;
+    }
+
+    unpublished.push({
+      title,
+      slug,
+      notionId: page.id,
+      url: page.url ?? null,
+      images: images.length,
+    });
+    console.log(
+      DRY_RUN
+        ? `  would remove the post and ${images.length} image(s)`
+        : `  ✓ removed, along with ${images.length} image(s)`
+    );
+  }
+
+  for (const page of readyPages) {
     const title = readProp(page, PROP.title);
     if (!title) {
       failures.push({
@@ -552,15 +693,25 @@ async function main() {
     // A post's slug freezes the first time it is written. After that the
     // derived slug is ignored, so retitling in Notion updates the same file at
     // the same URL instead of publishing a duplicate.
+    //
+    // `frozenSlug` is the file on disk; `rememberedSlug` also covers a post
+    // that was hidden and is now coming back, whose file no longer exists. The
+    // two are kept apart because only the first means "this post is already
+    // published" — the checks below turn on that, not on the address.
     const derivedSlug = slugFor(page);
     const frozenSlug = existingByNotionId.get(normalizeId(page.id));
-    const slug = frozenSlug ?? derivedSlug;
+    const rememberedSlug = frozenSlug ?? slugFromPublishedUrl(page);
+    const slug = rememberedSlug ?? derivedSlug;
 
     const ctx = { slug, images: [], imageIndex: 0, warnings: [] };
 
     console.log(`\n${title}  →  ${slug}.mdx`);
-    if (frozenSlug && frozenSlug !== derivedSlug) {
-      console.log(`  slug frozen at "${frozenSlug}" (title now derives "${derivedSlug}") — live URL preserved`);
+    if (rememberedSlug && rememberedSlug !== derivedSlug) {
+      console.log(
+        frozenSlug
+          ? `  slug frozen at "${frozenSlug}" (title now derives "${derivedSlug}") — live URL preserved`
+          : `  restoring to its previous address "${rememberedSlug}" (title now derives "${derivedSlug}")`
+      );
     }
 
     const blocks = await fetchBlocks(page.id);
@@ -686,11 +837,11 @@ async function main() {
     console.log(`  ✓ written`);
   }
 
-  await writeReport(synced, failures);
+  await writeReport(synced, failures, unpublished);
 
   console.log(
     DRY_RUN
-      ? '\nDry run — nothing written.'
+      ? '\nDry run — nothing written or removed.'
       : `\nDone. Review with: git diff && git status`
   );
 
@@ -774,11 +925,14 @@ async function commentOnFailures(failures) {
 }
 
 function composeComment(f) {
-  const lines = ['Objava nije prošla.', '', f.message];
+  const lines = [f.heading ?? 'Objava nije prošla.', '', f.message];
   if (!PUBLISH) {
+    // Which status to leave it on depends on what was being attempted: telling
+    // someone whose page failed to come *down* to set it back to "Za objavu"
+    // would undo exactly what they asked for.
     lines.push(
       '',
-      `Kad to popraviš, ostavi status na „${STATUS_READY}" — objava se sama pokupi u sljedećih 20-ak minuta.`
+      `Kad to popraviš, ostavi status na „${f.keepStatus ?? STATUS_READY}" — sinkronizacija to sama pokupi u sljedećem krugu.`
     );
   }
   return lines.join('\n');
@@ -815,8 +969,13 @@ async function publish(files) {
     try {
       raw = await fs.readFile(file, 'utf8');
     } catch {
-      // The file was deleted in the same merge that brought it in. Nothing is
-      // live, so there is nothing to announce.
+      // Either this merge took the post down — a page moved to "Skriveno" — or
+      // the file was deleted in the same merge that brought it in. Nothing is
+      // live either way, so there is nothing to announce.
+      //
+      // "Objavljeno na" is deliberately left alone rather than cleared: it is
+      // the only remaining record of the address, and it is what puts a hidden
+      // post back at its own URL if it is ever republished.
       warn(`${file}: not on disk — skipped`);
       continue;
     }
@@ -931,16 +1090,59 @@ async function waitForLive(url) {
  * tell an empty run from a crashed one. No file means the sync died before it
  * got that far, which the job must treat as a failure rather than as silence.
  */
-async function writeReport(posts, failures) {
+async function writeReport(posts, failures, unpublished = []) {
   if (!REPORT) return;
-  const report = { dryRun: DRY_RUN, posts, failures };
+  const report = { dryRun: DRY_RUN, posts, unpublished, failures };
   await fs.writeFile(REPORT, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+}
+
+/**
+ * Deletes a post and the images only it uses, and reports which ones those
+ * were. Returns before touching anything under --dry-run.
+ *
+ * The image names are read out of the post rather than globbed off its slug:
+ * `rebecca-*` also matches `rebecca-2-cover.webp`, so a glob would take a
+ * different post's cover down with it and break a page nobody asked to hide.
+ */
+async function removePost(slug, { dryRun = false } = {}) {
+  const file = path.join(OUT_POSTS, `${slug}.mdx`);
+  const raw = await fs.readFile(file, 'utf8');
+
+  // Covers both the frontmatter `src:` and the body's `![](…)`. The character
+  // class stops at the filename, so no match can escape OUT_IMAGES.
+  const images = [...new Set([...raw.matchAll(/\/images\/posts\/([\w.-]+)/g)].map((m) => m[1]))];
+
+  if (dryRun) return images;
+
+  await fs.rm(file);
+  // force: an image already gone — shared with another post, or removed by
+  // hand — must not leave the post itself half-deleted.
+  for (const name of images) await fs.rm(path.join(OUT_IMAGES, name), { force: true });
+  return images;
 }
 
 function slugFor(page) {
   const explicit = readProp(page, PROP.slug);
   if (explicit) return slugify(explicit);
   return slugify(readProp(page, PROP.title) ?? page.id);
+}
+
+/**
+ * The address a post had the last time it was live, read back out of
+ * "Objavljeno na".
+ *
+ * Hiding a post deletes its .mdx, and with it the notionId → filename mapping
+ * that holds a URL still across a retitle. That property outlives the file, so
+ * a post that comes back comes back to its own address instead of silently
+ * moving to whatever its current title happens to derive. It is left in place
+ * on the way down for exactly this reason.
+ */
+function slugFromPublishedUrl(page) {
+  const url = readProp(page, PROP.publishedUrl);
+  if (!url) return undefined;
+  const last = String(url).replace(/[?#].*$/, '').replace(/\/+$/, '').split('/').pop();
+  // A bare domain ends up here too ("knjigoteka.club"), and it is not a slug.
+  return last && /^[a-z0-9-]+$/.test(last) ? last : undefined;
 }
 
 /** Notion returns dashed ids; frontmatter may hold either form. */

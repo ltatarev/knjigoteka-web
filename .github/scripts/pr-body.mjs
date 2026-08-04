@@ -24,6 +24,7 @@ if (!reportPath || !bodyPath || !titlePath) {
 
 const report = JSON.parse(await fs.readFile(reportPath, 'utf8'));
 const posts = report.posts ?? [];
+const unpublished = report.unpublished ?? [];
 const failures = report.failures ?? [];
 
 // "Nova objava: {naslov}" is the agreed shape. A run that gathered several
@@ -33,21 +34,41 @@ const failures = report.failures ?? [];
 // A run that only revises already-published posts says so instead. Calling a
 // correction a new post trains the reviewer to stop reading the title.
 const noun = posts.length && posts.every((p) => !p.isNew) ? 'Izmjena objave' : 'Nova objava';
+
+// A run that only takes posts down must say so in the title. The whole review
+// turns on it: "Nova objava" over a pull request that deletes a live post is
+// the one mislabelling that could get a removal merged unnoticed.
+const headline = posts.length
+  ? { noun, items: posts }
+  : { noun: 'Skrivanje objave', items: unpublished };
+
+// A removed post can have lost its title along the way — the slug is the one
+// thing it is guaranteed to still have, and it is what the reviewer sees in
+// the diff anyway.
+const name = (item) => item.title ?? item.slug;
+
 // The empty case should be unreachable — the job only builds a PR when the
-// sync actually wrote something — but a crash here would lose a real post to a
-// formatting bug, so fall back instead of throwing.
+// sync actually changed something — but a crash here would lose a real post to
+// a formatting bug, so fall back instead of throwing.
 const title =
-  posts.length === 0
+  headline.items.length === 0
     ? 'Sinkronizacija iz Notiona'
-    : posts.length === 1
-      ? `${noun}: ${posts[0].title}`
-      : `${noun}: ${posts[0].title} (+${posts.length - 1})`;
+    : headline.items.length === 1
+      ? `${headline.noun}: ${name(headline.items[0])}`
+      : `${headline.noun}: ${name(headline.items[0])} (+${headline.items.length - 1})`;
 
 const lines = [];
 
 lines.push('Ovo je automatski pripremljeno iz Notiona.');
 lines.push('');
-lines.push('Kad se ovaj zahtjev spoji, objave odlaze na stranicu.');
+if (posts.length && unpublished.length) {
+  lines.push('Kad se ovaj zahtjev spoji, objave niže odlaze na stranicu — a one');
+  lines.push('označene kao skrivene nestaju s nje.');
+} else if (unpublished.length) {
+  lines.push('**Kad se ovaj zahtjev spoji, objave niže nestaju sa stranice.**');
+} else {
+  lines.push('Kad se ovaj zahtjev spoji, objave odlaze na stranicu.');
+}
 lines.push('');
 // The branch is rebuilt from Notion on every run, so anything typed into it
 // here disappears at the next sync. Say so where the person tempted to do it
@@ -78,13 +99,36 @@ for (const post of posts) {
   }
 }
 
+if (unpublished.length) {
+  lines.push('---');
+  lines.push('');
+  lines.push('### Nestaje sa stranice');
+  lines.push('');
+  lines.push('U Notionu je status ovih objava prebačen na `Skriveno`, pa se brišu.');
+  lines.push('Tekst i slike ostaju u Notionu — objava se vraća tako da se status');
+  lines.push('vrati na `Za objavu`, i to na istu adresu kao prije.');
+  lines.push('');
+
+  for (const post of unpublished) {
+    const notion = post.url ? ` — [otvori u Notionu](${post.url})` : '';
+    // "slike: 2" rather than "2 slike": Croatian declines the noun by the count
+    // (1 slika, 2 slike, 5 slika), so the label goes first and sidesteps it —
+    // the same trick the post blocks above use.
+    lines.push(`- **${name(post)}** — adresa \`/${post.slug}/\`, slike: ${post.images}${notion}`);
+  }
+  lines.push('');
+}
+
 if (failures.length) {
   lines.push('---');
   lines.push('');
   lines.push('### Nije objavljeno');
   lines.push('');
+  // The status to leave it on depends on what the page was trying to do, so it
+  // is not named here — a removal that failed must not be told to go back to
+  // `Za objavu`. The writer's own Notion comment names the right one.
   lines.push('Ove stranice nisu prebačene. Popravi ih u Notionu i sinkronizacija');
-  lines.push('će ih pokupiti sama u sljedećem krugu — status ostavi na `Za objavu`.');
+  lines.push('će ih pokupiti sama u sljedećem krugu — status ostavi kakav je sad.');
   lines.push('');
   for (const f of failures) lines.push(`- **${f.title ?? 'Bez naslova'}** — ${f.message}`);
   lines.push('');

@@ -1,8 +1,12 @@
 name: Notion sync
 
-# Convert every page marked "Za objavu", commit the result to a branch, and open
-# one pull request per run. Merging that PR is what publishes — the status flip
-# and the live URL are then written back by notion-publish.yml.
+# Convert every page marked "Za objavu", delete the post behind every page
+# marked "Skriveno", commit the result to a branch, and open one pull request
+# per run. Merging that PR is what publishes — the status flip and the live URL
+# are then written back by notion-publish.yml.
+#
+# A run can do both at once, so the pull request is not always additive: read
+# its body before merging, not just its title.
 
 on:
   schedule:
@@ -92,6 +96,9 @@ jobs:
         run: |
           # Only these two paths are ever machine-written. Scoping the commit
           # keeps an unrelated stray file out of a post's pull request.
+          #
+          # -A rather than a bare add: a page moved to "Skriveno" is published
+          # as a *deletion*, and without it the removal would never be staged.
           git add -A content/posts public/images/posts
           if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"

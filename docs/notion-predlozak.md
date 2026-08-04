@@ -31,6 +31,26 @@ objavu.
 predložak napravljen, a ne na dan kad se objava piše. Ako ostane prazan, uzima
 se datum nastanka stranice.
 
+## Status
+
+Status je jedino čime se objavljuje. Ništa drugo ne treba dirati.
+
+| Status | Što se događa |
+| --- | --- |
+| `Skica` | Ništa. Piši koliko god dugo treba. |
+| `Za objavu` | Objava odlazi na stranicu u sljedećoj sinkronizaciji. |
+| `Objavljeno` | Upisuje se sam kad objava ode na stranicu — ne postavlja se ručno. |
+| `Skriveno` | Objava se miče sa stranice. |
+
+`Skriveno` briše objavu sa stranice, ali ne i iz Notiona — tekst i slike ostaju
+ovdje netaknuti. Ako je vratiš na `Za objavu`, objava se vraća na **istu adresu**
+kao prije, čak i ako si joj u međuvremenu promijenila naslov. Zato polje
+`Objavljeno na` ostaje popunjeno i dok je objava skrivena: to je jedini zapis o
+tome gdje je bila.
+
+Objava koja nikad nije bila na stranici može se slobodno staviti na `Skriveno` —
+neće se dogoditi ništa.
+
 ## Naslovna slika
 
 U predložak se ne može staviti slika, ali se može staviti podsjetnik. Naslovnu

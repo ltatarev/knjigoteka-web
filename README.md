@@ -59,14 +59,18 @@ one by hand, drop a new `.mdx` file into `content/posts/`, add the cover to
 ## Publishing from Notion
 
 Writers work in the **Objave** Notion database and never touch this repository.
-Flipping a page's `Status` to **`Za objavu`** is the entire publishing action;
-everything after it is automated.
+A page's `Status` is the entire interface: **`Za objavu`** puts it on the site,
+**`Skriveno`** takes it back off. Everything after that is automated.
 
 ```
 Notion "Za objavu"  →  notion-sync.yml  →  pull request  →  merge
                                                              ↓
                     Notion "Objavljeno" ←  notion-publish.yml
                               +  live URL in "Objavljeno na"
+
+Notion "Skriveno"   →  notion-sync.yml  →  pull request  →  merge
+                       (deletes the post)                    ↓
+                                              gone from the site
 ```
 
 | piece | what it is |
@@ -97,9 +101,9 @@ workflow**. That is the same job, and it opens or updates the same pull request
 export NOTION_TOKEN=ntn_xxx          # notion.so/my-integrations
 export NOTION_DATABASE_ID=xxxxxxxx   # from the database URL
 
-node notion-sync.mjs --list          # what's ready to publish
-node notion-sync.mjs --dry-run       # convert and print, write nothing
-node notion-sync.mjs                 # write MDX + images
+node notion-sync.mjs --list          # what's ready to publish, and what's to be removed
+node notion-sync.mjs --dry-run       # convert and print, write and delete nothing
+node notion-sync.mjs                 # write MDX + images, delete hidden posts
 ```
 
 The integration needs the database shared with it (••• → **Connections**) and
@@ -125,6 +129,34 @@ Rename a Notion column there, not in Notion.
 
 Slugs are frozen on first publish: the sync maps `notionId` → existing filename,
 so retitling a published post in Notion does not move its URL.
+
+### Taking a post down
+
+`Skriveno` has to exist as an option on the `Status` property first — add it in
+the **Objave** database (`Status` → **+ Add option**), spelled exactly that way.
+The name is matched literally, and the sync renames nothing in Notion; if the
+option is missing, no page can ever hold the status and nothing happens.
+
+Setting `Status` to **`Skriveno`** unpublishes it. The next sync deletes the
+post's `.mdx` and the images only it uses, so merging that pull request removes
+the page, its card on `/news/` and its sitemap entry in one go — a static export
+builds nothing it has no file for. Hiding a page that was never published does
+nothing, which is not an error.
+
+The pull request says so in its title (`Skrivanje objave: …`) and lists what
+disappears. Nothing goes off the site unreviewed, exactly as nothing goes on it
+unreviewed.
+
+To put it back, set the status to `Za objavu` again. It returns to **the same
+address**, even if it was retitled in the meantime: the `notionId` → filename
+map is gone with the file, so the sync falls back to the address recorded in
+`Objavljeno na`. That property is therefore deliberately *not* cleared when a
+post comes down — while a post is hidden it is the only record of where it
+lived, and clearing it would silently move the URL on the way back.
+
+The text and images stay in Notion throughout; only the site's copy is deleted.
+Note that git history keeps the removed files, so this hides a post from the
+site — it does not erase it from the repository.
 
 ### Listing order
 

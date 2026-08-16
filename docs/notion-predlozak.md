@@ -51,6 +51,24 @@ tome gdje je bila.
 Objava koja nikad nije bila na stranici može se slobodno staviti na `Skriveno` —
 neće se dogoditi ništa.
 
+## Prepravke već objavljenog teksta
+
+Kad objava ode na stranicu, status joj se sam prebaci na `Objavljeno`.
+Sinkronizacija od tada tu stranicu više ne gleda — traži samo `Za objavu` i
+`Skriveno`. Zato prepravke napravljene u Notionu neće same doći na stranicu, ma
+koliko puta pokrenula sinkronizaciju: proći će uredno i javiti da nema ništa
+novo.
+
+Da prepravke odu na stranicu, vrati **Status na `Za objavu`**. U sljedećoj
+sinkronizaciji objava se prepisuje ispravljenim tekstom, a status se nakon toga
+sam vraća na `Objavljeno`.
+
+Objava pritom ostaje na **istoj adresi** — ne nastaje druga objava uz staru, čak
+ni ako si u međuvremenu promijenila naslov.
+
+Isto vrijedi za svaku promjenu, ne samo za tekst: naslovnu sliku, sažetak,
+kategoriju, autora.
+
 ## Naslovna slika
 
 U predložak se ne može staviti slika, ali se može staviti podsjetnik. Naslovnu

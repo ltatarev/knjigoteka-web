@@ -97,7 +97,11 @@ export default function Header() {
             <FlexList responsive variant="stretch">
               {headerNav.map((navItem) => (
                 <li key={navItem.href}>
-                  <NavLink to={navItem.href} className={mobileNavLink}>
+                  <NavLink
+                    to={navItem.href}
+                    className={mobileNavLink}
+                    onClick={() => setOpen(false)}
+                  >
                     {navItem.text}
                   </NavLink>
                 </li>
